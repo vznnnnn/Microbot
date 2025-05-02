@@ -1,9 +1,7 @@
 package net.runelite.client.plugins.microbot.mining;
 
-import net.runelite.api.GameObject;
-import net.runelite.api.ItemID;
-import net.runelite.api.NpcID;
-import net.runelite.api.Skill;
+import net.runelite.api.*;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
@@ -17,12 +15,12 @@ import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.math.Rs2Random;
+import net.runelite.client.plugins.microbot.util.misc.Rs2UiHelper;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.security.Login;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -36,6 +34,10 @@ public class AutoMiningScript extends Script {
     public static final String version = "1.4.4";
     private static final int GEM_MINE_UNDERGROUND = 11410;
     private static final int BASALT_MINE = 11425;
+    private final int TRACKED_ORES_LIMIT = 10;
+    private final LinkedList<WorldPoint> recentlyMinedOres = new LinkedList<>();
+    private final Map<WorldPoint, Long> oreRespawnTimers = new HashMap<>();
+    private final long ORE_RESPAWN_TIME_MS = 30000; // 30 seconds respawn (adjust per ore)
     State state = State.MINING;
 
     public boolean run(AutoMiningConfig config) {
@@ -105,12 +107,24 @@ public class AutoMiningScript extends Script {
                         GameObject rock = Rs2GameObject.findReachableObject(config.ORE().getName(), true, config.distanceToStray(), initialPlayerLocation);
 
                         if (rock != null) {
+                            System.out.println("Interacting with rock");
                             if (Rs2GameObject.interact(rock)) {
+                                System.out.println("Interacted with rock");
+                                Microbot.status = "Mining " + config.ORE().getName();
+
+                                WorldPoint minedTile = rock.getWorldLocation();
+                                trackMinedOre(minedTile); // Track mined ore
+
                                 Rs2Player.waitForXpDrop(Skill.MINING, true);
                                 Rs2Antiban.actionCooldown();
                                 Rs2Antiban.takeMicroBreakByChance();
                             }
+                        } else {
+                            System.out.println("Waiting for respawn...");
+                            Microbot.status = "Waiting for respawn...";
+                            hoverNextRespawningOre();
                         }
+
                         break;
                     case RESETTING:
                         List<String> itemNames = Arrays.stream(config.itemsToBank().split(",")).map(String::toLowerCase).collect(Collectors.toList());
@@ -142,7 +156,7 @@ public class AutoMiningScript extends Script {
             } catch (Exception ex) {
                 Microbot.log(ex.getMessage());
             }
-        }, 0, 100, TimeUnit.MILLISECONDS);
+        }, 0, 50, TimeUnit.MILLISECONDS);
         return true;
     }
 
@@ -151,4 +165,47 @@ public class AutoMiningScript extends Script {
         super.shutdown();
         Rs2Antiban.resetAntibanSettings();
     }
+
+    private void trackMinedOre(WorldPoint tile) {
+        if (recentlyMinedOres.size() >= TRACKED_ORES_LIMIT) {
+            recentlyMinedOres.removeFirst();
+        }
+        recentlyMinedOres.add(tile);
+        oreRespawnTimers.put(tile, System.currentTimeMillis());
+    }
+
+    private Optional<WorldPoint> getNextRespawningOre() {
+        long now = System.currentTimeMillis();
+        return oreRespawnTimers.entrySet().stream()
+                .filter(entry -> now - entry.getValue() < ORE_RESPAWN_TIME_MS)
+                .sorted(Comparator.comparingLong(entry -> entry.getValue() + ORE_RESPAWN_TIME_MS))
+                .map(Map.Entry::getKey)
+                .findFirst();
+    }
+
+    private void hoverNextRespawningOre() {
+        getNextRespawningOre().ifPresent(tile -> {
+            Tile[][][] tiles = Microbot.getClient().getScene().getTiles();
+            Tile targetTile = null;
+
+            for (Tile[] row : tiles[Microbot.getClient().getPlane()]) {
+                for (Tile sceneTile : row) {
+                    if (sceneTile != null && sceneTile.getWorldLocation().equals(tile)) {
+                        targetTile = sceneTile;
+                        break;
+                    }
+                }
+                if (targetTile != null) break;
+            }
+
+            if (targetTile != null) {
+                Point point = Rs2UiHelper.getClickingPoint(Rs2UiHelper.getTileClickbox(targetTile), true);
+                System.out.println("Hovering over respawn tile at: " + tile);
+                Microbot.naturalMouse.moveTo(point.getX(), point.getY());
+            } else {
+                System.out.println("Respawn tile not found in scene.");
+            }
+        });
+    }
+
 }

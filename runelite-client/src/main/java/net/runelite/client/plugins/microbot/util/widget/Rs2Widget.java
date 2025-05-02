@@ -2,7 +2,7 @@ package net.runelite.client.plugins.microbot.util.widget;
 
 import net.runelite.api.MenuAction;
 import net.runelite.api.annotations.Component;
-import net.runelite.api.widgets.InterfaceID;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.menu.NewMenuEntry;

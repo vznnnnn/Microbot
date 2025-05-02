@@ -48,7 +48,7 @@ public interface AutoMiningConfig extends Config {
     )
     default Rocks ORE()
     {
-        return Rocks.TIN;
+        return Rocks.IRON;
     }
 
     @ConfigItem(

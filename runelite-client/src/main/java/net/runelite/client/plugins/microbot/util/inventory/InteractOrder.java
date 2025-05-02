@@ -1,6 +1,7 @@
 package net.runelite.client.plugins.microbot.util.inventory;
 
 public enum InteractOrder {
+    PROFESSIONAL,
     STANDARD,
     EFFICIENT_ROW,
     COLUMN,

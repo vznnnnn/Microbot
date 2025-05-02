@@ -28,6 +28,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +44,7 @@ public class Rs2Inventory {
     private static final int CAPACITY = 28;
     private static final int COLUMNS = 4;
     private static final int ROWS = 7;
+    private static final List<Integer> PROFESSIONAL_ORDER = Arrays.asList(0, 1, 5, 4, 8, 9, 13, 12, 16, 17, 21, 20, 24, 25, 26, 27, 23, 22, 18, 19, 15, 14, 10, 11, 7, 6, 3, 2);
     public static List<Rs2ItemModel> inventoryItems = new ArrayList<>();
     private static boolean isTrackingInventory = false;
     private static boolean isInventoryChanged = false;
@@ -483,7 +485,7 @@ public class Rs2Inventory {
             if (item == null) continue;
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -501,7 +503,7 @@ public class Rs2Inventory {
             if (item == null) continue;
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -519,7 +521,7 @@ public class Rs2Inventory {
             if (item == null) continue;
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -537,7 +539,7 @@ public class Rs2Inventory {
             if (item == null) continue;
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -555,7 +557,7 @@ public class Rs2Inventory {
             if (item == null) continue;
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -573,7 +575,7 @@ public class Rs2Inventory {
             if (item == null) continue;
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -601,7 +603,7 @@ public class Rs2Inventory {
             if (item == null) continue;
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -663,7 +665,7 @@ public class Rs2Inventory {
             if (item == null) continue;
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -698,7 +700,7 @@ public class Rs2Inventory {
 
             invokeMenu(item, "Drop");
             if (!Rs2AntibanSettings.naturalMouse)
-                sleep(150, 300);
+                sleep(30, 75);
         }
         return true;
     }
@@ -2505,6 +2507,19 @@ public class Rs2Inventory {
 
     public static List<Rs2ItemModel> calculateInteractOrder(List<Rs2ItemModel> rs2Items, InteractOrder interactOrder) {
         switch (interactOrder) {
+
+            case PROFESSIONAL:
+                Map<Integer, Rs2ItemModel> slotMapProf = rs2Items.stream()
+                        .collect(Collectors.toMap(Rs2ItemModel::getSlot, Function.identity()));
+
+                List<Rs2ItemModel> ordered = new ArrayList<>();
+                for (int slot : PROFESSIONAL_ORDER) {
+                    Rs2ItemModel item = slotMapProf.get(slot);
+                    if (item != null) {
+                        ordered.add(item);
+                    }
+                }
+                return ordered;
 
             case EFFICIENT_ROW:
                 rs2Items.sort((item1, item2) -> {

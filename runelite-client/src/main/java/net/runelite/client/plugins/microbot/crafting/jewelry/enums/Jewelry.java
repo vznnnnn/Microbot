@@ -29,12 +29,15 @@ public enum Jewelry {
     EMERALD_RING("emerald ring", ItemID.EMERALD_RING, Gem.EMERALD, ItemID.RING_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_2, 27),
     EMERALD_NECKLACE("emerald necklace", ItemID.EMERALD_NECKLACE, Gem.EMERALD, ItemID.NECKLACE_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_2, 29),
     EMERALD_BRACELET("emerald bracelet", ItemID.EMERALD_BRACELET, Gem.EMERALD, ItemID.BRACELET_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_2, 30),
+    RUBY_AMULET("ruby amulet", ItemID.RUBY_AMULET, Gem.RUBY, ItemID.AMULET_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_3, 34), // fix enchantSpell
     RUBY_RING("ruby ring", ItemID.RUBY_RING, Gem.RUBY, ItemID.RING_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_3, 34),
     RUBY_NECKLACE("ruby necklace", ItemID.RUBY_NECKLACE, Gem.RUBY, ItemID.NECKLACE_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_3, 40),
     RUBY_BRACELET("ruby bracelet", ItemID.RUBY_BRACELET, Gem.RUBY, ItemID.BRACELET_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_3, 42),
+    DIAMOND_AMULET("diamond amulet", ItemID.DIAMOND_AMULET, Gem.DIAMOND, ItemID.AMULET_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_3, 43), // fix enchantSpell
     DIAMOND_RING("diamond ring", ItemID.DIAMOND_RING, Gem.DIAMOND, ItemID.RING_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_4, 43),
     DIAMOND_NECKLACE("diamond necklace", ItemID.DIAMOND_NECKLACE, Gem.DIAMOND, ItemID.NECKLACE_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_4, 56),
     DIAMOND_BRACELET("diamond bracelet", ItemID.DIAMOND_BRACELET, Gem.DIAMOND, ItemID.BRACELET_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_4, 58),
+    DRAGONSTONE_AMULET("ruby amulet", ItemID.DRAGONSTONE_AMULET, Gem.DRAGONSTONE, ItemID.AMULET_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_5, 55), // fix enchantSpell
     DRAGONSTONE_RING("dragonstone ring", ItemID.DRAGONSTONE_RING, Gem.DRAGONSTONE, ItemID.RING_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_5, 55),
     DRAGON_NECKLACE("dragon necklace", ItemID.DRAGON_NECKLACE, Gem.DRAGONSTONE, ItemID.NECKLACE_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_5, 72),
     DRAGONSTONE_BRACELET("dragon bracelet", ItemID.DRAGONSTONE_BRACELET, Gem.DRAGONSTONE, ItemID.BRACELET_MOULD, JewelryType.GOLD, EnchantSpell.LEVEL_5, 74),
