@@ -440,7 +440,7 @@ public class Microbot {
         }
 
         if (!Microbot.getClient().isClientThread()) {
-            sleep(50, 100);
+            sleep(25, 50);
         }
     }
 
@@ -451,7 +451,7 @@ public class Microbot {
 
 
         if (!Microbot.getClient().isClientThread()) {
-            sleep(50, 80);
+            sleep(25, 50);
         }
     }
 

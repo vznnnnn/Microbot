@@ -92,6 +92,25 @@ public interface AIOFighterConfig extends Config {
     )
     String skillingSection = "Combat Skilling";
 
+    @ConfigSection(
+            name = "Visual",
+            description = "Visual",
+            position = 60,
+            closedByDefault = false
+    )
+    String visualSection = "Visual";
+
+    @ConfigItem(
+            keyName = "drawAttackRadius",
+            name = "Draw Attack Radius",
+            description = "Draw the Attack Radius",
+            position = 0,
+            section = visualSection
+    )
+    default boolean drawAttackRadius() {
+        return false;
+    }
+
     @ConfigItem(
             keyName = "Combat",
             name = "Auto attack npc",
@@ -191,6 +210,28 @@ public interface AIOFighterConfig extends Config {
     )
     default boolean toggleFood() {
         return false;
+    }
+
+    @ConfigItem(
+            keyName = "minEatPercent",
+            name = "Minimum Health Percent",
+            description = "Percentage of health below which the bot will eat food",
+            section = foodAndPotionsSection,
+            position = 0
+    )
+    default int minEatPercent() {
+        return 65;
+    }
+
+    @ConfigItem(
+            keyName = "minPrayerPercent",
+            name = "Minimum Prayer Percent",
+            description = "Percentage of prayer points below which the bot will drink a prayer potion",
+            section = foodAndPotionsSection,
+            position = 1
+    )
+    default int minPrayerPercent() {
+        return 30;
     }
 
     // Testing if full auto potion manager is preferred over individual potion toggles
@@ -647,6 +688,17 @@ public interface AIOFighterConfig extends Config {
     )
     default InventorySetup inventorySetup() {
         return null;
+    }
+
+    @ConfigItem(
+            keyName = "useGuthans",
+            name = "Use Guthans",
+            description = "Use Guthans armor to heal",
+            position = 100,
+            section = gearSection
+    )
+    default boolean useGuthans() {
+        return false;
     }
 
     @ConfigItem(

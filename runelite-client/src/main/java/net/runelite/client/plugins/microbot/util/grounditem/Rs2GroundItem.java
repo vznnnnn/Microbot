@@ -312,7 +312,7 @@ public class Rs2GroundItem {
         return groundItem != getGroundItems().get(groundItem.getLocation(), groundItem.getId());
     }
 
-    private static boolean coreLoot(GroundItem groundItem) {
+    public static boolean coreLoot(GroundItem groundItem) {
         int quantity = groundItem.isStackable() ? 1 : groundItem.getQuantity();
         if (Rs2Inventory.getEmptySlots() < quantity) {
             quantity = Rs2Inventory.getEmptySlots();
@@ -343,7 +343,7 @@ public class Rs2GroundItem {
         return true;
     }
 
-    private static boolean validateLoot(Predicate<GroundItem> filter) {
+    public static boolean validateLoot(Predicate<GroundItem> filter) {
         boolean hasLootableItems = hasLootableItems(filter);
         //If there are no more lootable items we succesfully looted everything in the filter
         // true to let the script know that we succesfully looted

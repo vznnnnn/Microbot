@@ -2505,6 +2505,108 @@ public class Rs2Inventory {
         }
     }
 
+    public static List<Rs2ItemModel> calculateInteractOrder(List<Rs2ItemModel> rs2Items, InteractOrder interactOrder, String... itemNames) {
+        switch (interactOrder) {
+
+            case PROFESSIONAL:
+                Map<Integer, Rs2ItemModel> slotMapProf = rs2Items.stream()
+                        .collect(Collectors.toMap(Rs2ItemModel::getSlot, Function.identity()));
+
+                List<Rs2ItemModel> ordered = new ArrayList<>();
+                for (int slot : PROFESSIONAL_ORDER) {
+                    Rs2ItemModel item = slotMapProf.get(slot);
+                    if (item != null) {
+                        ordered.add(item);
+                    }
+                }
+                return ordered;
+
+            case EFFICIENT_ROW:
+                rs2Items.sort((item1, item2) -> {
+                    int index1 = item1.getSlot();
+                    int index2 = item2.getSlot();
+                    int row1 = index1 / COLUMNS;
+                    int row2 = index2 / COLUMNS;
+                    if (row1 != row2) {
+                        return Integer.compare(row1, row2);
+                    } else {
+                        int col1 = index1 % COLUMNS;
+                        int col2 = index2 % COLUMNS;
+                        if (row1 % 2 == 0) {
+                            // For even rows, sort columns normally (left to right)
+                            return Integer.compare(col1, col2);
+                        } else {
+                            // For odd rows, sort columns in reverse (right to left)
+                            return Integer.compare(col2, col1);
+                        }
+                    }
+                });
+                return rs2Items;
+
+            case COLUMN:
+                rs2Items.sort((item1, item2) -> {
+                    int index1 = item1.getSlot();
+                    int index2 = item2.getSlot();
+                    int col1 = index1 % COLUMNS;
+                    int col2 = index2 % COLUMNS;
+                    if (col1 != col2) {
+                        return Integer.compare(col1, col2);
+                    } else {
+                        return Integer.compare(index1 / COLUMNS, index2 / COLUMNS);
+                    }
+                });
+                return rs2Items;
+
+            case EFFICIENT_COLUMN:
+                rs2Items.sort((item1, item2) -> {
+                    int index1 = item1.getSlot();
+                    int index2 = item2.getSlot();
+                    int col1 = index1 % COLUMNS;
+                    int col2 = index2 % COLUMNS;
+                    if (col1 != col2) {
+                        return Integer.compare(col1, col2);
+                    } else {
+                        int row1 = index1 / COLUMNS;
+                        int row2 = index2 / COLUMNS;
+                        if (col1 % 2 == 0) {
+                            // For even columns, sort rows normally (top to bottom)
+                            return Integer.compare(row1, row2);
+                        } else {
+                            // For odd columns, sort rows in reverse (bottom to top)
+                            return Integer.compare(row2, row1);
+                        }
+                    }
+                });
+                return rs2Items;
+
+            case ZIGZAG:
+                int[] customOrder = {
+                        0, 4, 1, 5, 2, 6, 3, 7,
+                        11, 15, 10, 14, 9, 13, 8, 12,
+                        16, 20, 17, 21, 18, 22, 19, 23,
+                        27, 26, 25, 24
+                };
+
+                Map<Integer, Integer> orderMap = new HashMap<>();
+                for (int i = 0; i < customOrder.length; i++) {
+                    orderMap.put(customOrder[i], i);
+                }
+
+                rs2Items.sort((item1, item2) -> {
+                    int index1 = item1.getSlot();
+                    int index2 = item2.getSlot();
+                    return Integer.compare(orderMap.getOrDefault(index1, Integer.MAX_VALUE),
+                            orderMap.getOrDefault(index2, Integer.MAX_VALUE));
+                });
+                return rs2Items;
+            case STANDARD:
+                return rs2Items;
+
+            default:
+                return rs2Items;
+        }
+    }
+
     public static List<Rs2ItemModel> calculateInteractOrder(List<Rs2ItemModel> rs2Items, InteractOrder interactOrder) {
         switch (interactOrder) {
 

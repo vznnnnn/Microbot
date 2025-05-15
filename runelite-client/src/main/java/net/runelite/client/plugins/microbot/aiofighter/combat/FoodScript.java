@@ -8,6 +8,7 @@ import net.runelite.client.plugins.microbot.aiofighter.AIOFighterConfig;
 import net.runelite.client.plugins.microbot.util.equipment.Rs2Equipment;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2ItemModel;
+import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -34,31 +35,35 @@ public class FoodScript extends Script {
                 if (!Microbot.isLoggedIn()) return;
                 if (!super.run()) return;
                 if (!config.toggleFood()) return;
-                if (Rs2Inventory.hasItem("empty vial"))
+
+                if (Rs2Inventory.hasItem("empty vial")) {
                     Rs2Inventory.drop("empty vial");
-                double treshHold = (double) (Microbot.getClient().getBoostedSkillLevel(Skill.HITPOINTS) * 100) / Microbot.getClient().getRealSkillLevel(Skill.HITPOINTS);
-                if (Rs2Equipment.isWearingFullGuthan()) {
-                    if (treshHold > 80) //only unequip guthans if we have more than 80% hp
-                        unEquipGuthans();
-                    return;
-                } else {
-                    if (treshHold > 51) //return as long as we have more than 51% health and not guthan equipped
+                }
+
+                if (config.useGuthans()) {
+                    double treshHold = (double) (Microbot.getClient().getBoostedSkillLevel(Skill.HITPOINTS) * 100) / Microbot.getClient().getRealSkillLevel(Skill.HITPOINTS);
+                    if (Rs2Equipment.isWearingFullGuthan()) {
+                        if (treshHold > 80) //only unequip guthans if we have more than 80% hp
+                            unEquipGuthans();
                         return;
+                    } else {
+                        if (treshHold > 51) //return as long as we have more than 51% health and not guthan equipped
+                            return;
+                    }
                 }
                 List<Rs2ItemModel> foods = Microbot.getClientThread().runOnClientThreadOptional(Rs2Inventory::getInventoryFood)
                         .orElse(null);
                 if (foods == null || foods.isEmpty()) {
-                    if (!equipFullGuthans()) {
-                        Microbot.showMessage("No more food left & no guthans available. Please teleport");
-                        sleep(5000);
+                    if (config.useGuthans()) {
+                        if (!equipFullGuthans()) {
+                            Microbot.showMessage("No more food left & no guthans available. Please teleport");
+                            sleep(5000);
+                        }
+                        return;
                     }
-                    return;
                 }
-                for (Rs2ItemModel food : foods) {
-                    Rs2Inventory.interact(food, "eat");
-                    sleep(1200, 2000);
-                    break;
-                }
+
+                Rs2Player.eatAt(config.minEatPercent());
             } catch(Exception ex) {
                 Microbot.logStackTrace(this.getClass().getSimpleName(), ex);
             }

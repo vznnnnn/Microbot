@@ -51,17 +51,22 @@ public class AIOFighterOverlay extends OverlayPanel {
 
     @Override
     public Dimension render(Graphics2D graphics) {
-        if (filteredAttackableNpcs == null) return null;
+        if (filteredAttackableNpcs == null) {
+            return null;
+        }
 
-        LocalPoint lp =  LocalPoint.fromWorld(Microbot.getClient(), config.centerLocation());
-        if (lp != null) {
-            Polygon poly = Perspective.getCanvasTileAreaPoly(Microbot.getClient(), lp, config.attackRadius() * 2);
+        // render attack radius
+        if (config.drawAttackRadius()) {
+            LocalPoint lp = LocalPoint.fromWorld(Microbot.getClient(), config.centerLocation());
+            if (lp != null) {
+                Polygon poly = Perspective.getCanvasTileAreaPoly(Microbot.getClient(), lp, config.attackRadius() * 2);
 
-            if (poly != null)
-            {
-                renderPolygon(graphics, poly, WHITE_TRANSLUCENT);
+                if (poly != null) {
+                    renderPolygon(graphics, poly, WHITE_TRANSLUCENT);
+                }
             }
         }
+
         // render safe spot
         LocalPoint sslp = LocalPoint.fromWorld(Microbot.getClient(), config.safeSpot());
         if (sslp != null) {

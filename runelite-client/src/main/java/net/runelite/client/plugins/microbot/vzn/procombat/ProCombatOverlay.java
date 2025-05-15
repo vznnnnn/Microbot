@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.microbot.autocombat;
+package net.runelite.client.plugins.microbot.vzn.procombat;
 
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.ui.overlay.OverlayPanel;
@@ -8,12 +8,12 @@ import net.runelite.client.ui.overlay.components.TitleComponent;
 import javax.inject.Inject;
 import java.awt.*;
 
-public class AutoCombatOverlay extends OverlayPanel {
+public class ProCombatOverlay extends OverlayPanel {
 
-    private final AutoCombatConfig config;
+    private final ProCombatConfig config;
 
     @Inject
-    AutoCombatOverlay(AutoCombatPlugin plugin, AutoCombatConfig config) {
+    ProCombatOverlay(ProCombatPlugin plugin, ProCombatConfig config) {
         super(plugin);
         this.config = config;
         setPosition(OverlayPosition.TOP_LEFT);
@@ -25,7 +25,7 @@ public class AutoCombatOverlay extends OverlayPanel {
         try {
             panelComponent.setPreferredSize(new Dimension(250, 400));
             panelComponent.getChildren().add(TitleComponent.builder()
-                    .text("AutoCombat")
+                    .text("ProCombat")
                     .color(Color.PINK)
                     .build());
         } catch (Exception ex) {
