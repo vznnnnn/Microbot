@@ -11,6 +11,9 @@ import net.runelite.client.plugins.microbot.vzn.procombat.ProCombatPlugin;
 
 import javax.swing.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static net.runelite.client.plugins.microbot.util.Global.sleep;
 
 public class PrepareInventory extends PrepareStageImpl {
@@ -25,14 +28,14 @@ public class PrepareInventory extends PrepareStageImpl {
 
         // Open bank
         Rs2Bank.openBank();
-        sleep(500);
+        sleep(100);
         Rs2Bank.handleBankPin(config.bankPin());
         sleep(1000);
 
         // Empty inventory
         Rs2Bank.depositAll();
         Rs2Inventory.waitForInventoryChanges(1500);
-        sleep(500);
+        sleep(1000);
 
         // Take out rune pouch
         if (Rs2Bank.hasRunePouch()) {
@@ -91,22 +94,29 @@ public class PrepareInventory extends PrepareStageImpl {
         sleep(500);
 
         // Check if we have the required items
-        if (!hasBankItemQuantity("Death rune", 4000)
-                || !hasBankItemQuantity("Chaos rune", 8000)
-                || !hasBankItemQuantity("Water rune", 8000)
-                || !hasBankItemQuantity("Stamina potion(4)", 1)
-                || !hasBankItemQuantity("Anti-venom(4)", 1)
-                || !hasBankItemQuantity("Prayer potion(4)", 18)
-                || !hasBankItemQuantity("Shark", 6)
-                || !hasBankItemQuantity("Varrock teleport", 1)) {
-            JOptionPane.showMessageDialog(null, "Bank error - Missing required supplies");
-            plugin.getScript().bankError = true;
-            return;
+        Map<String, Integer> requiredItems = new HashMap<>();
+        requiredItems.put("Death rune", 8000);
+        requiredItems.put("Blood rune", 4000);
+        requiredItems.put("Air rune", 8000);
+        requiredItems.put("Fire rune", 8000);
+        requiredItems.put("Stamina potion(4)", 1);
+        requiredItems.put("Anti-venom(4)", 1);
+        requiredItems.put("Prayer potion(4)", 18);
+        requiredItems.put("Shark", 5);
+        requiredItems.put("Varrock teleport", 1);
+
+        for (Map.Entry<String, Integer> requiredItem : requiredItems.entrySet()) {
+            if (!hasBankItemQuantity(requiredItem.getKey(), requiredItem.getValue())) {
+                JOptionPane.showMessageDialog(null, "Bank error - Missing required supplies - " + requiredItem.getValue() + "x " + requiredItem.getKey());
+                plugin.getScript().bankError = true;
+                return;
+            }
         }
 
-        Rs2Bank.withdrawX("Death rune", 4000);
-        Rs2Bank.withdrawX("Chaos rune", 8000);
-        Rs2Bank.withdrawX("Water rune", 8000);
+        Rs2Bank.withdrawX("Death rune", 8000);
+        Rs2Bank.withdrawX("Blood rune", 4000);
+        Rs2Bank.withdrawX("Air rune", 8000);
+        Rs2Bank.withdrawX("Fire rune", 8000);
         Rs2Inventory.waitForInventoryChanges(1500);
 
         // Close bank
@@ -114,8 +124,13 @@ public class PrepareInventory extends PrepareStageImpl {
         sleep(500);
 
         // Add runes to rune pouch
-        addRunesToRunePouch(runePouchItem, "Death rune", "Chaos rune", "Water rune");
+        addRunesToRunePouch(runePouchItem, "Death rune", "Blood rune", "Fire rune");
+        Rs2Inventory.waitForInventoryChanges(1500);
+        Rs2Inventory.moveItemToSlot(Rs2Inventory.get("Air rune"), 26);
+        Rs2Inventory.waitForInventoryChanges(1500);
         Rs2Inventory.moveItemToSlot(Rs2Inventory.get("Rune pouch"), 27);
+        Rs2Inventory.waitForInventoryChanges(1500);
+        sleep(500);
 
         // Open bank
         Rs2Bank.openBank();
@@ -124,7 +139,7 @@ public class PrepareInventory extends PrepareStageImpl {
         Rs2Bank.withdrawItem("Stamina potion(4)");
         Rs2Bank.withdrawItem("Anti-venom(4)");
         Rs2Bank.withdrawX("Prayer potion(4)", 18);
-        Rs2Bank.withdrawX("Shark", 6);
+        Rs2Bank.withdrawX("Shark", 5);
         Rs2Bank.withdrawX("Varrock teleport", 20);
         Rs2Inventory.waitForInventoryChanges(1500);
 
@@ -137,7 +152,7 @@ public class PrepareInventory extends PrepareStageImpl {
         return Rs2Inventory.hasItemAmount("Stamina potion(4)", 1)
                 && Rs2Inventory.hasItemAmount("Anti-venom(4)", 1)
                 && Rs2Inventory.hasItemAmount("Prayer potion(4)", 18)
-                && Rs2Inventory.hasItemAmount("Shark", 6)
+                && Rs2Inventory.hasItemAmount("Shark", 5)
                 && Rs2Inventory.hasItemAmount("Varrock teleport", 1)
                 && Rs2Inventory.hasItemAmount("Rune pouch", 1)
                 && Rs2Player.getHealthPercentage() >= config.healthThreshold()

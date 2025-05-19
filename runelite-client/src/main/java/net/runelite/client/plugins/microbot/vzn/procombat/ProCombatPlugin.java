@@ -6,15 +6,15 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.events.DeathEvent;
-import net.runelite.client.plugins.microbot.util.misc.TimeUtils;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
 import java.awt.*;
-import java.time.Instant;
 
 @PluginDescriptor(
         name = PluginDescriptor.vzn + "ProCombat",
@@ -32,7 +32,6 @@ public class ProCombatPlugin extends Plugin {
     @Inject @Getter private ProCombatConfig config;
     @Inject @Getter private ProCombatScript script;
     @Inject private ProCombatOverlay overlay;
-    private Instant scriptStartTime;
 
     @Provides
     ProCombatConfig provideConfig(ConfigManager configManager) {
@@ -42,7 +41,6 @@ public class ProCombatPlugin extends Plugin {
     @Override
     protected void startUp() throws AWTException {
         instance = this;
-        scriptStartTime = Instant.now();
 
         if (overlayManager != null) {
             overlayManager.add(overlay);
@@ -57,8 +55,13 @@ public class ProCombatPlugin extends Plugin {
         overlayManager.remove(overlay);
     }
 
-    protected String getTimeRunning() {
-        return scriptStartTime != null ? TimeUtils.getFormattedDurationBetween(scriptStartTime, Instant.now()) : "";
+    @Subscribe
+    public void onConfigChanged(ConfigChanged event) {
+        if (event.getKey().equals("attackStyle")) {
+            if (!event.getOldValue().equals(event.getNewValue())) {
+                script.setStartXp(Microbot.getClient().getSkillExperience(config.attackStyle().toRuneLiteSkill()));
+            }
+        }
     }
 
     @Subscribe

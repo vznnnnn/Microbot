@@ -1,5 +1,7 @@
 package net.runelite.client.plugins.microbot.vzn.procombat;
 
+import lombok.Getter;
+import lombok.Setter;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.VarPlayerID;
@@ -20,6 +22,7 @@ import net.runelite.client.plugins.microbot.util.prayer.Rs2Prayer;
 import net.runelite.client.plugins.microbot.util.prayer.Rs2PrayerEnum;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.vzn.procombat.stage.*;
+import net.runelite.client.plugins.microbot.vzn.util.TimeUtil;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -45,23 +48,33 @@ public class ProCombatScript extends Script {
     private static final int MAX_BONES_PER_TILE = 3;
     private static final int SEARCH_RADIUS = 4;
 
-    enum ScriptState {
-        PREPARE,
-        ATTACK
-    }
-
     private ProCombatPlugin plugin;
     private ProCombatConfig config;
 
-    private ScriptState state = null;
+    private ProCombatScriptState state = null;
     private List<PrepareStageImpl> stages;
     private int stage = 0;
 
+    @Getter private Instant startTime = null;
+    @Getter @Setter private int startXp = -1;
+
     private Instant lastAggressionReset = null;
     private Instant lastGroupedAt = null;
+    private Instant lastSpreadAt = null;
     private Instant lastPoisonCheck = null;
     public boolean playerDied = false;
     public boolean bankError = false;
+
+    @Override
+    public void shutdown() {
+        super.shutdown();
+
+        if (mainScheduledFuture != null && !mainScheduledFuture.isCancelled()) {
+            mainScheduledFuture.cancel(true);
+        }
+
+        Microbot.log("Shutting down script");
+    }
 
     public boolean run(ProCombatConfig config) {
         Microbot.enableAutoRunOn = false;
@@ -85,8 +98,10 @@ public class ProCombatScript extends Script {
 
         this.setupStages();
 
+        this.startTime = Instant.now();
         this.lastAggressionReset = null;
         this.lastGroupedAt = null;
+        this.lastSpreadAt = null;
         this.lastPoisonCheck = null;
         this.playerDied = false;
         this.bankError = false;
@@ -108,17 +123,17 @@ public class ProCombatScript extends Script {
     }
 
     private void detectState() {
-        ScriptState previousState = state;
+        ProCombatScriptState previousState = state;
 
         if (isInMonkeyMadnessTunnel()) {
             if (Rs2Player.getWorldLocation().distanceTo(PLAYER_ATTACK_TILE) <= 10) {
-                state = ScriptState.ATTACK;
+                state = ProCombatScriptState.ATTACK;
             } else {
-                state = ScriptState.PREPARE;
+                state = ProCombatScriptState.PREPARE;
                 stage = 8;
             }
         } else {
-            state = ScriptState.PREPARE;
+            state = ProCombatScriptState.PREPARE;
 
             if (Rs2GameObject.findObjectById(TravelTunnel.TUNNEL_LADDER_ID) != null) {
                 stage = 7;
@@ -141,6 +156,10 @@ public class ProCombatScript extends Script {
             Rs2Player.logout();
             sleep(1000);
             return;
+        }
+
+        if (startXp == -1) {
+            startXp = Microbot.getClient().getSkillExperience(config.attackStyle().toRuneLiteSkill());
         }
 
         detectState();
@@ -182,9 +201,9 @@ public class ProCombatScript extends Script {
         if (currentStage.isComplete()) {
             Microbot.log("Completed stage - " + stage);
             int nextStageIndex = stage + 1;
-            if (nextStageIndex > stages.size()) {
+            if (nextStageIndex >= stages.size()) {
                 Microbot.log("All stages complete - switching to ATTACK state");
-                state = ScriptState.ATTACK;
+                state = ProCombatScriptState.ATTACK;
                 stage = 0;
             } else {
                 stage = nextStageIndex;
@@ -220,9 +239,8 @@ public class ProCombatScript extends Script {
 
     private boolean isInMonkeyMadnessTunnel() {
         WorldPoint location = Rs2Player.getWorldLocation();
-
-        return (location.getX() >= 2760 && location.getX() <= 2810 &&
-                location.getY() >= 9100 && location.getY() <= 9200 &&
+        return (location.getX() >= 2560 && location.getX() <= 3010 &&
+                location.getY() >= 9000 && location.getY() <= 9300 &&
                 location.getPlane() == 0);
     }
 
@@ -340,6 +358,12 @@ public class ProCombatScript extends Script {
             return false;
         }
 
+        if (lastSpreadAt != null && !Rs2Inventory.hasItem(BONE_NAME)) {
+            if (Duration.between(lastSpreadAt, Instant.now()).toSeconds() < 15) {
+                return false;
+            }
+        }
+
         // Group bones by tile
         Map<WorldPoint, List<Integer>> boneMap = Arrays.stream(Rs2GroundItem.getAll(3))
                 .filter(item -> item.getItem().getName().equalsIgnoreCase(BONE_NAME))
@@ -348,6 +372,10 @@ public class ProCombatScript extends Script {
                         item -> item.getTile().getWorldLocation(),
                         Collectors.mapping(item -> item.getTileItem().getId(), Collectors.toList())
                 ));
+
+        if (!boneMap.entrySet().stream().anyMatch(entry -> entry.getValue().size() > 3)) {
+            return false;
+        }
 
         boolean bonesSpread = false;
 
@@ -408,17 +436,19 @@ public class ProCombatScript extends Script {
         for (WorldPoint tile : nearbyTiles) {
             long boneCount = boneCountByTile.getOrDefault(tile, 0L);
 
-            while (boneCount < 4 && Rs2Inventory.hasItem(BONE_NAME)) {
+            while (boneCount < 3 && Rs2Inventory.hasItem(BONE_NAME)) {
                 if (!Rs2Player.getWorldLocation().equals(tile)) {
                     Microbot.log("Walking to tile to drop bones");
                     Rs2Walker.walkFastCanvas(tile);
-                    sleep(400);
+                    sleepUntil(() -> Rs2Player.getWorldLocation().equals(tile), 1000);
                 }
+
+                Microbot.log("Bone count: " + boneCount);
 
                 bonesSpread = true;
                 Rs2Inventory.drop(BONE_NAME);  // Assumes dropping on current tile
+                Rs2Inventory.waitForInventoryChanges(1500);
                 boneCount++;
-                sleep(200);
             }
 
             if (!Rs2Inventory.hasItem(BONE_NAME)) {
@@ -429,6 +459,10 @@ public class ProCombatScript extends Script {
         // Final step: Return to fighting location
         if (!Rs2Player.getWorldLocation().equals(PLAYER_ATTACK_TILE)) {
             Rs2Walker.walkFastCanvas(PLAYER_ATTACK_TILE);
+        }
+
+        if (bonesSpread) {
+            lastSpreadAt = Instant.now();
         }
 
         return bonesSpread;
@@ -453,7 +487,7 @@ public class ProCombatScript extends Script {
 
         // Do the walk trick
         if (offGroupTargetTile >= onGroupTargetTile) {
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 2; i++) {
                 Rs2Walker.walkFastCanvas(GROUP_WALK_TRICK_TILE);
                 sleep(450, 550);
                 Rs2Walker.walkFastCanvas(PLAYER_ATTACK_TILE);
@@ -496,15 +530,12 @@ public class ProCombatScript extends Script {
         }
     }
 
-    @Override
-    public void shutdown() {
-        super.shutdown();
+    public String getTimeRunning() {
+        return startTime != null ? TimeUtil.formatIntoAbbreviatedString((int) Duration.between(startTime, Instant.now()).toSeconds()) : "";
+    }
 
-        if (mainScheduledFuture != null && !mainScheduledFuture.isCancelled()) {
-            mainScheduledFuture.cancel(true);
-        }
-
-        Microbot.log("Shutting down script");
+    public int getXpGained() {
+        return Microbot.getClient().getSkillExperience(config.attackStyle().toRuneLiteSkill()) - startXp;
     }
 
 }

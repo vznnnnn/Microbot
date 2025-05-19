@@ -1,6 +1,7 @@
 package net.runelite.client.plugins.microbot.vzn.procombat.stage;
 
 import net.runelite.client.plugins.microbot.Microbot;
+import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.vzn.procombat.PrepareStageImpl;
@@ -32,6 +33,13 @@ public class TraverseTunnel extends PrepareStageImpl {
 
             plugin.getScript().ensureProtectionPrayersEnabled();
             plugin.getScript().evaluateAndConsumeFoodAndPotions();
+
+            if (Rs2Player.getRunEnergy() < 75) {
+                if (!Rs2Player.hasStaminaActive()) {
+                    Rs2Inventory.interact("Stamina potion", "Drink");
+                }
+            }
+
             sleep(1000);
         }
 
@@ -45,7 +53,6 @@ public class TraverseTunnel extends PrepareStageImpl {
 
     @Override
     public boolean isComplete() {
-        Microbot.log("TraverseTunnel isComplete: " + (Rs2Player.getWorldLocation().distanceTo(PLAYER_ATTACK_TILE) <= 10));
         return Rs2Player.getWorldLocation().distanceTo(PLAYER_ATTACK_TILE) <= 10;
     }
 

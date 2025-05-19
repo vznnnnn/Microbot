@@ -14,6 +14,17 @@ public interface ProCombatConfig extends Config {
     String features = "features";
 
     @ConfigItem(
+            keyName = "attackStyle",
+            name = "Attack Style",
+            description = "Which attack style to use",
+            section = features,
+            position = -1
+    )
+    default ProCombatAttackStyle attackStyle() {
+        return ProCombatAttackStyle.MAGIC;
+    }
+
+    @ConfigItem(
             keyName = "spreadBones",
             name = "Spread Bones",
             description = "Should stacks of more than 3 bones be picked up and moved to other tiles",

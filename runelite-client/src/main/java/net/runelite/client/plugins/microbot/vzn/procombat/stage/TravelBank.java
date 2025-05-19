@@ -3,6 +3,7 @@ package net.runelite.client.plugins.microbot.vzn.procombat.stage;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.prayer.Rs2Prayer;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
 import net.runelite.client.plugins.microbot.vzn.procombat.PrepareStageImpl;
 import net.runelite.client.plugins.microbot.vzn.procombat.ProCombatPlugin;
@@ -20,6 +21,7 @@ public class TravelBank extends PrepareStageImpl {
     @Override
     public void tick() {
         Microbot.log("Walking to GE bank");
+        Rs2Prayer.disableAllPrayers();
         Rs2Walker.walkTo(GE_BANK_TILE);
         sleepUntil(() -> Rs2Player.getWorldLocation().distanceTo(GE_BANK_TILE) <= 20, 5000);
     }
