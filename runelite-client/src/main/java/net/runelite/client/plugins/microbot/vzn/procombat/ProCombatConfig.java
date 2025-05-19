@@ -9,7 +9,7 @@ public interface ProCombatConfig extends Config {
     @ConfigSection(
             name = "Features",
             description = "",
-            position = 1
+            position = 0
     )
     String features = "features";
 
@@ -43,7 +43,7 @@ public interface ProCombatConfig extends Config {
             position = 2
     )
     default String teleportItem() {
-        return "Teleport to house";
+        return "Varrock teleport";
     }
 
     @ConfigItem(
@@ -54,13 +54,35 @@ public interface ProCombatConfig extends Config {
             position = 3
     )
     default String teleportItemAction() {
-        return "Break";
+        return "Commune";
+    }
+
+    @ConfigItem(
+            keyName = "resetAggressionEnabled",
+            name = "Use Reset Aggression",
+            description = "If reset aggression should be enabled",
+            section = features,
+            position = 4
+    )
+    default boolean resetAggressionEnabled() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "resetAggressionInterval",
+            name = "Reset Aggression Interval",
+            description = "The number of minutes before running to an area to reset the monster aggression",
+            section = features,
+            position = 5
+    )
+    default int resetAggressionInterval() {
+        return 10;
     }
 
     @ConfigSection(
             name = "Food and Potions",
             description = "Settings for supplies",
-            position = 2
+            position = 1
     )
     String foodAndPotionsSection = "foodAndPotions";
 
@@ -76,14 +98,14 @@ public interface ProCombatConfig extends Config {
     }
 
     @ConfigItem(
-            keyName = "minPrayerPercent",
-            name = "Minimum Prayer Percent",
-            description = "Percentage of prayer points below which the bot will drink a prayer potion",
+            keyName = "minPrayerPoints",
+            name = "Minimum Prayer Points",
+            description = "Minimum prayer points for the bot to drink a prayer potion",
             section = foodAndPotionsSection,
             position = 1
     )
-    default int minPrayerPercent() {
-        return 30;
+    default int minPrayerPoints() {
+        return 20;
     }
 
     @ConfigItem(
@@ -110,6 +132,24 @@ public interface ProCombatConfig extends Config {
     )
     default int boostedStatsThreshold() {
         return 5;
+    }
+
+    @ConfigSection(
+            name = "Bank",
+            description = "Settings for banking",
+            position = 2
+    )
+    String bankSection = "bank";
+
+    @ConfigItem(
+            keyName = "bankPin",
+            name = "Bank PIN",
+            description = "Your Bank PIN",
+            section = bankSection,
+            position = 0
+    )
+    default String bankPin() {
+        return "1234";
     }
 
 }

@@ -5,8 +5,10 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.microbot.util.events.DeathEvent;
 import net.runelite.client.plugins.microbot.util.misc.TimeUtils;
 import net.runelite.client.ui.overlay.OverlayManager;
 
@@ -26,10 +28,10 @@ public class ProCombatPlugin extends Plugin {
     public static ProCombatPlugin instance;
 
     @Inject @Getter private Client client;
-    @Inject private OverlayManager overlayManager;
-    @Inject private ProCombatConfig config;
+    @Inject @Getter private OverlayManager overlayManager;
+    @Inject @Getter private ProCombatConfig config;
+    @Inject @Getter private ProCombatScript script;
     @Inject private ProCombatOverlay overlay;
-    @Inject private ProCombatScript script;
     private Instant scriptStartTime;
 
     @Provides
@@ -57,6 +59,11 @@ public class ProCombatPlugin extends Plugin {
 
     protected String getTimeRunning() {
         return scriptStartTime != null ? TimeUtils.getFormattedDurationBetween(scriptStartTime, Instant.now()) : "";
+    }
+
+    @Subscribe
+    public void onDeathEvent(DeathEvent event) {
+        script.playerDied = true;
     }
 
 }

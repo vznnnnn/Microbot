@@ -2,19 +2,24 @@ package net.runelite.client.plugins.microbot.vzn.procombat;
 
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.client.plugins.grounditems.GroundItem;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.Script;
-import net.runelite.client.plugins.microbot.util.Global;
 import net.runelite.client.plugins.microbot.util.antiban.Rs2Antiban;
 import net.runelite.client.plugins.microbot.util.antiban.Rs2AntibanSettings;
+import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.grounditem.Rs2GroundItem;
+import net.runelite.client.plugins.microbot.util.inventory.InteractOrder;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.misc.Rs2Potion;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.npc.Rs2NpcModel;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
+import net.runelite.client.plugins.microbot.util.prayer.Rs2Prayer;
+import net.runelite.client.plugins.microbot.util.prayer.Rs2PrayerEnum;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
+import net.runelite.client.plugins.microbot.vzn.procombat.stage.*;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -30,14 +35,35 @@ public class ProCombatScript extends Script {
 
     public static final double VERSION = 1.0;
 
-    private static final WorldPoint PLAYER_ATTACK_LOCATION = new WorldPoint(2715, 9127, 0);
-    private static final WorldPoint GROUP_TARGET_LOCATION = new WorldPoint(2715, 9128, 0);
-    private static final WorldPoint GROUP_WALK_TRICK_LOCATION = new WorldPoint(2714, 9128, 0);
+    public static final WorldPoint PLAYER_ATTACK_TILE = new WorldPoint(2715, 9127, 0);
+    private static final WorldPoint GROUP_TARGET_TILE = new WorldPoint(2715, 9128, 0);
+    private static final WorldPoint GROUP_WALK_TRICK_TILE = new WorldPoint(2714, 9128, 0);
+    private static final WorldPoint RESET_AGGRESSION_TILE = new WorldPoint(2744, 9137, 0);
+    private static final WorldPoint TUNNEL_SAFE_TILE = new WorldPoint(2733, 9138, 0);
+    private static final String MONSTER_NAME = "Skeleton";
     private static final String BONE_NAME = "Bones";
     private static final int MAX_BONES_PER_TILE = 3;
     private static final int SEARCH_RADIUS = 4;
 
-    static {
+    enum ScriptState {
+        PREPARE,
+        ATTACK
+    }
+
+    private ProCombatPlugin plugin;
+    private ProCombatConfig config;
+
+    private ScriptState state = null;
+    private List<PrepareStageImpl> stages;
+    private int stage = 0;
+
+    private Instant lastAggressionReset = null;
+    private Instant lastGroupedAt = null;
+    private Instant lastPoisonCheck = null;
+    public boolean playerDied = false;
+    public boolean bankError = false;
+
+    public boolean run(ProCombatConfig config) {
         Microbot.enableAutoRunOn = false;
         Rs2Antiban.resetAntibanSettings();
         Rs2AntibanSettings.usePlayStyle = true;
@@ -49,60 +75,172 @@ public class ProCombatScript extends Script {
         Rs2AntibanSettings.profileSwitching = true;
         Rs2AntibanSettings.naturalMouse = true;
         Rs2AntibanSettings.simulateMistakes = true;
-        Rs2AntibanSettings.moveMouseOffScreen = false;
+        Rs2AntibanSettings.moveMouseOffScreen = true;
         Rs2AntibanSettings.moveMouseRandomly = true;
         Rs2AntibanSettings.moveMouseRandomlyChance = 0.04;
         Rs2Antiban.setActivityIntensity(EXTREME);
-    }
 
-    private Instant lastGroupedAt = Instant.now();
+        this.plugin = ProCombatPlugin.instance;
+        this.config = config;
 
-    public boolean run(ProCombatConfig config) {
-        Microbot.enableAutoRunOn = false;
+        this.setupStages();
 
-        mainScheduledFuture = scheduledExecutorService.scheduleWithFixedDelay(() ->
+        this.lastAggressionReset = null;
+        this.lastGroupedAt = null;
+        this.lastPoisonCheck = null;
+        this.playerDied = false;
+        this.bankError = false;
+
+        this.mainScheduledFuture = this.scheduledExecutorService.scheduleWithFixedDelay(() ->
         {
             try {
                 if (!Microbot.isLoggedIn() || !super.run()) {
                     return;
                 }
 
-                handleTick(config);
+                handleTick();
             } catch (Exception ex) {
                 Microbot.log("Error in main loop: " + ex.getMessage());
-                System.out.println("Exception message: " + ex.getMessage());
                 ex.printStackTrace();
             }
         }, 0, 50, TimeUnit.MILLISECONDS);
         return true;
     }
 
-    private void handleTick(ProCombatConfig config) {
-        if (shouldRetreat(config)) {
-            retreatToSafety(config);
+    private void detectState() {
+        ScriptState previousState = state;
+
+        if (isInMonkeyMadnessTunnel()) {
+            if (Rs2Player.getWorldLocation().distanceTo(PLAYER_ATTACK_TILE) <= 10) {
+                state = ScriptState.ATTACK;
+            } else {
+                state = ScriptState.PREPARE;
+                stage = 8;
+            }
+        } else {
+            state = ScriptState.PREPARE;
+
+            if (Rs2GameObject.findObjectById(TravelTunnel.TUNNEL_LADDER_ID) != null) {
+                stage = 7;
+            } else if (state != previousState) {
+                stage = 0;
+            }
+        }
+    }
+
+    private void handleTick() {
+        if (playerDied) {
+            Microbot.log("Player died - logging out");
+            Rs2Player.logout();
+            sleep(1000);
             return;
         }
 
-        evaluateAndConsumePotions(config);
-        spreadBones(config);
-        groupMobs(config);
+        if (bankError) {
+            Microbot.log("Bank error - logging out");
+            Rs2Player.logout();
+            sleep(1000);
+            return;
+        }
 
-        // Walk to standing location
-        if (!Rs2Player.getWorldLocation().equals(PLAYER_ATTACK_LOCATION)) {
-            Microbot.log("Walking to player attack location");
-            Rs2Walker.walkFastCanvas(PLAYER_ATTACK_LOCATION);
+        detectState();
+
+        switch (state) {
+            case PREPARE:
+                handlePrepareTick();
+                break;
+            case ATTACK:
+                handleAttackTick();
+                break;
         }
     }
 
-    private void retreatToSafety(ProCombatConfig config) {
+    private void setupStages() {
+        this.stages = Arrays.asList(
+                new TravelBank(plugin),
+                new PrepareInventory(plugin),
+                new TravelSpiritTree(plugin),
+                new TravelGrandTree(plugin),
+                new TravelDaero(plugin),
+                new TravelWaydar(plugin),
+                new TravelLumdo(plugin),
+                new TravelTunnel(plugin),
+                new TraverseTunnel(plugin)
+        );
+    }
+
+    private void handlePrepareTick() {
+        PrepareStageImpl currentStage = stages.get(stage);
+
+        // Run tick if stage not complete
+        if (!currentStage.isComplete()) {
+            Microbot.log("Ticking stage " + stage);
+            currentStage.tick();
+        }
+
+        // Go to next stage if complete
+        if (currentStage.isComplete()) {
+            Microbot.log("Completed stage - " + stage);
+            int nextStageIndex = stage + 1;
+            if (nextStageIndex > stages.size()) {
+                Microbot.log("All stages complete - switching to ATTACK state");
+                state = ScriptState.ATTACK;
+                stage = 0;
+            } else {
+                stage = nextStageIndex;
+                Microbot.log("Switched to next stage - " + stage);
+            }
+
+            sleep(1000);
+        }
+    }
+
+    private void handleAttackTick() {
+        if (shouldRetreat()) {
+            retreatToSafety();
+            return;
+        }
+
+        ensureProtectionPrayersEnabled();
+        evaluateAndConsumeFoodAndPotions();
+        resetAggression();
+
+        if (spreadBones()) {
+            return;
+        }
+
+        groupMobs();
+
+        // Walk to standing location
+        if (!Rs2Player.getWorldLocation().equals(PLAYER_ATTACK_TILE)) {
+            Microbot.log("Walking to player attack location");
+            Rs2Walker.walkFastCanvas(PLAYER_ATTACK_TILE);
+        }
+    }
+
+    private boolean isInMonkeyMadnessTunnel() {
+        WorldPoint location = Rs2Player.getWorldLocation();
+
+        return (location.getX() >= 2760 && location.getX() <= 2810 &&
+                location.getY() >= 9100 && location.getY() <= 9200 &&
+                location.getPlane() == 0);
+    }
+
+    public void retreatToSafety() {
         Microbot.pauseAllScripts = true;
         Rs2Inventory.interact(config.teleportItem(), config.teleportItemAction());
         Microbot.pauseAllScripts = false;
+        sleep(1500);
     }
 
-    private boolean shouldRetreat(ProCombatConfig config) {
+    public boolean shouldRetreat() {
         int currentHealth = Microbot.getClient().getBoostedSkillLevel(Skill.HITPOINTS);
         int currentPrayer = Microbot.getClient().getBoostedSkillLevel(Skill.PRAYER);
+
+        if (currentPrayer <= 10) {
+            return true;
+        }
+
         boolean noFood = Rs2Inventory.getInventoryFood().isEmpty();
         boolean noPrayerPotions = Rs2Inventory.items()
                 .stream()
@@ -111,10 +249,16 @@ public class ProCombatScript extends Script {
         return (noFood && currentHealth <= config.healthThreshold()) || (noPrayerPotions && currentPrayer < 10);
     }
 
-    private void evaluateAndConsumePotions(ProCombatConfig config) {
-        Microbot.log("evaluateAndConsumePotions");
+    public void ensureProtectionPrayersEnabled() {
+        // Ensure protect melee is enabled
+        if (!Rs2Prayer.isPrayerActive(Rs2PrayerEnum.PROTECT_MELEE)) {
+            Rs2Prayer.toggle(Rs2PrayerEnum.PROTECT_MELEE, true);
+        }
+    }
+
+    public void evaluateAndConsumeFoodAndPotions() {
         Rs2Player.eatAt(config.minEatPercent());
-        Rs2Player.drinkPrayerPotionAt(config.minPrayerPercent());
+        Rs2Player.drinkPrayerPotionAt(config.minPrayerPoints());
 
         if (!isRangingPotionActive(config.boostedStatsThreshold())) {
             consumePotion(Rs2Potion.getRangePotionsVariants());
@@ -124,9 +268,19 @@ public class ProCombatScript extends Script {
             consumePotion(getMagicPotionsVariants());
         }
 
-        int poisonStatus = ProCombatPlugin.instance.getClient().getVarbitValue(102);
-        if (poisonStatus > 0) {
-            consumePotion(getAntiPoisonVariants());
+        if (lastPoisonCheck == null || Duration.between(lastPoisonCheck, Instant.now()).toSeconds() >= 5) {
+            lastPoisonCheck = Instant.now();
+
+            Microbot.getClientThread().invoke(() -> {
+                int poisonStatus = ProCombatPlugin.instance.getClient().getVarpValue(VarPlayerID.POISON);
+                if (poisonStatus > 0) {
+                    consumePotion(getAntiPoisonVariants());
+                }
+            });
+        }
+
+        if (Rs2Inventory.hasItem("Vial")) {
+            Rs2Inventory.dropAll((item) -> item.getName().equals("Vial"), InteractOrder.PROFESSIONAL);
         }
     }
 
@@ -181,21 +335,21 @@ public class ProCombatScript extends Script {
         return Rs2GroundItem.validateLoot(filter);
     }
 
-    private void spreadBones(ProCombatConfig config) {
+    private boolean spreadBones() {
         if (!config.spreadBones()) {
-            return;
+            return false;
         }
-
-        Microbot.log("spreadBones");
 
         // Group bones by tile
         Map<WorldPoint, List<Integer>> boneMap = Arrays.stream(Rs2GroundItem.getAll(3))
                 .filter(item -> item.getItem().getName().equalsIgnoreCase(BONE_NAME))
-                .filter(item -> PLAYER_ATTACK_LOCATION.distanceTo(item.getTile().getWorldLocation()) <= SEARCH_RADIUS)
+                .filter(item -> PLAYER_ATTACK_TILE.distanceTo(item.getTile().getWorldLocation()) <= SEARCH_RADIUS)
                 .collect(Collectors.groupingBy(
                         item -> item.getTile().getWorldLocation(),
                         Collectors.mapping(item -> item.getTileItem().getId(), Collectors.toList())
                 ));
+
+        boolean bonesSpread = false;
 
         // Pickup bones
         for (Map.Entry<WorldPoint, List<Integer>> entry : boneMap.entrySet()) {
@@ -203,6 +357,8 @@ public class ProCombatScript extends Script {
             List<Integer> bones = entry.getValue();
 
             if (bones.size() > MAX_BONES_PER_TILE) {
+                bonesSpread = true;
+
                 int bonesToPickup = bones.size() - MAX_BONES_PER_TILE;
                 Microbot.log("There are " + bonesToPickup + " bones to pickup");
 
@@ -216,10 +372,8 @@ public class ProCombatScript extends Script {
             }
         }
 
-        // Drop bones on new tiles
-        List<WorldPoint> nearbyTiles = new ArrayList<>();
-
         // Generate all tiles within our bounds
+        List<WorldPoint> nearbyTiles = new ArrayList<>();
         WorldPoint dropTileBoxMin = new WorldPoint(2713, 9128, 0);
         WorldPoint dropTileBoxMax = new WorldPoint(2717, 9129, 0);
 
@@ -230,17 +384,21 @@ public class ProCombatScript extends Script {
 
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
-                nearbyTiles.add(new WorldPoint(x, y, PLAYER_ATTACK_LOCATION.getPlane()));
+                WorldPoint tile = new WorldPoint(x, y, PLAYER_ATTACK_TILE.getPlane());
+
+                if (!(tile.equals(PLAYER_ATTACK_TILE) || tile.equals(GROUP_TARGET_TILE))) {
+                    nearbyTiles.add(tile);
+                }
             }
         }
 
-        // Shuffle the tiles
-        nearbyTiles.sort(Comparator.comparingInt(PLAYER_ATTACK_LOCATION::distanceTo));
+        // Shuffle the tiles so that further tiles are prioritized
+        nearbyTiles.sort(Comparator.comparingInt(PLAYER_ATTACK_TILE::distanceTo));
         Collections.reverse(nearbyTiles);
 
         // Recompute bone count per tile
         Map<WorldPoint, Long> boneCountByTile = Arrays.stream(Rs2GroundItem.getAll(3))
-                .filter(item -> item.getItem().getName().equalsIgnoreCase("Bones"))
+                .filter(item -> item.getItem().getName().equalsIgnoreCase(BONE_NAME))
                 .collect(Collectors.groupingBy(
                         item -> item.getTile().getWorldLocation(),
                         Collectors.counting()
@@ -250,58 +408,91 @@ public class ProCombatScript extends Script {
         for (WorldPoint tile : nearbyTiles) {
             long boneCount = boneCountByTile.getOrDefault(tile, 0L);
 
-            while (boneCount < 3 && Rs2Inventory.hasItem("Bones")) {
+            while (boneCount < 4 && Rs2Inventory.hasItem(BONE_NAME)) {
                 if (!Rs2Player.getWorldLocation().equals(tile)) {
                     Microbot.log("Walking to tile to drop bones");
                     Rs2Walker.walkFastCanvas(tile);
-                    Global.sleep(400);
+                    sleep(400);
                 }
 
-                Rs2Inventory.drop("Bones");  // Assumes dropping on current tile
+                bonesSpread = true;
+                Rs2Inventory.drop(BONE_NAME);  // Assumes dropping on current tile
                 boneCount++;
-                Global.sleep(400);
+                sleep(200);
             }
 
-            if (!Rs2Inventory.hasItem("Bones")) {
+            if (!Rs2Inventory.hasItem(BONE_NAME)) {
                 break;
             }
         }
 
         // Final step: Return to fighting location
-        if (!Rs2Player.getWorldLocation().equals(PLAYER_ATTACK_LOCATION)) {
-            Rs2Walker.walkFastCanvas(PLAYER_ATTACK_LOCATION);
+        if (!Rs2Player.getWorldLocation().equals(PLAYER_ATTACK_TILE)) {
+            Rs2Walker.walkFastCanvas(PLAYER_ATTACK_TILE);
         }
+
+        return bonesSpread;
     }
 
-    private void groupMobs(ProCombatConfig config) {
+    private void groupMobs() {
         if (!config.groupMobs()) {
             return;
         }
 
-        Microbot.log("groupMobs");
-
         // Cooldown
-        Duration runtime = Duration.between(lastGroupedAt, Instant.now());
-        if (runtime.toSeconds() < 7) {
-            return;
+        if (lastGroupedAt != null) {
+            Duration runtime = Duration.between(lastGroupedAt, Instant.now());
+            if (runtime.toSeconds() < 7) {
+                return;
+            }
         }
 
-        List<Rs2NpcModel> targets = Rs2Npc.getNpcs("Skeleton").filter((npc) -> npc.getWorldLocation().distanceTo(Rs2Player.getWorldLocation()) <= 5).collect(Collectors.toList());
-        int onGroupTargetTile = Math.toIntExact(targets.stream().filter((npc) -> npc.getWorldLocation().equals(GROUP_TARGET_LOCATION)).count());
+        List<Rs2NpcModel> targets = Rs2Npc.getNpcs(MONSTER_NAME).filter((npc) -> npc.getWorldLocation().distanceTo(Rs2Player.getWorldLocation()) <= 5).collect(Collectors.toList());
+        int onGroupTargetTile = Math.toIntExact(targets.stream().filter((npc) -> npc.getWorldLocation().equals(GROUP_TARGET_TILE)).count());
         int offGroupTargetTile = Math.toIntExact(targets.size()) - onGroupTargetTile;
 
         // Do the walk trick
         if (offGroupTargetTile >= onGroupTargetTile) {
             for (int i = 0; i < 3; i++) {
-                Rs2Walker.walkFastCanvas(GROUP_WALK_TRICK_LOCATION);
+                Rs2Walker.walkFastCanvas(GROUP_WALK_TRICK_TILE);
                 sleep(450, 550);
-                Rs2Walker.walkFastCanvas(PLAYER_ATTACK_LOCATION);
+                Rs2Walker.walkFastCanvas(PLAYER_ATTACK_TILE);
                 sleep(450, 550);
 
-                if (!Rs2Player.getWorldLocation().equals(PLAYER_ATTACK_LOCATION)) {
-                    Rs2Walker.walkFastCanvas(PLAYER_ATTACK_LOCATION);
+                if (!Rs2Player.getWorldLocation().equals(PLAYER_ATTACK_TILE)) {
+                    Rs2Walker.walkFastCanvas(PLAYER_ATTACK_TILE);
                 }
             }
+        }
+    }
+
+    private void resetAggression() {
+        if (!config.resetAggressionEnabled()) {
+            return;
+        }
+
+        if (lastAggressionReset == null) {
+            lastAggressionReset = Instant.now();
+        }
+
+        Duration timeDifference = Duration.between(lastAggressionReset, Instant.now());
+
+        if (timeDifference.toMinutes() >= config.resetAggressionInterval()) {
+            // Walk to area that is far enough away to reset monster aggression
+            Rs2Walker.walkTo(RESET_AGGRESSION_TILE);
+            Rs2Walker.walkFastCanvas(RESET_AGGRESSION_TILE);
+            sleepUntil(() -> Rs2Player.getWorldLocation().distanceTo(RESET_AGGRESSION_TILE) <= 5, 5000);
+
+            // Let's check food/potions just to be safe
+            evaluateAndConsumeFoodAndPotions();
+
+            // Walk back to player attack location
+            Rs2Walker.walkTo(PLAYER_ATTACK_TILE);
+            Rs2Walker.walkFastCanvas(PLAYER_ATTACK_TILE);
+            sleepUntil(() -> Rs2Player.getWorldLocation().distanceTo(PLAYER_ATTACK_TILE) <= 5, 5000);
+
+            // Reset last aggression
+            lastAggressionReset = Instant.now();
         }
     }
 
