@@ -69,12 +69,12 @@ public class FalconryStrategy implements ProHunterStrategy {
             return false;
         }
 
-        if (worldView.getProjectiles() == null) {
+        if (Microbot.getClient().getProjectiles() == null) {
             Microbot.log("getProjectiles is null");
             return false;
         }
 
-        return StreamSupport.stream(worldView.getProjectiles().spliterator(), false)
+        return StreamSupport.stream(Microbot.getClient().getProjectiles().spliterator(), false)
                 .anyMatch(p -> p.getId() == projectileId);
     }
 
