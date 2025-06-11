@@ -375,8 +375,7 @@ public class Rs2Player {
      * @return {@code true} if the player is interacting with another entity, {@code false} otherwise.
      */
     public static boolean isInteracting() {
-        return Microbot.getClientThread().runOnClientThreadOptional(() -> Microbot.getClient().getLocalPlayer().isInteracting())
-                .orElse(false);
+        return Optional.of(Microbot.getClient().getLocalPlayer().isInteracting()).orElse(false);
     }
 
     /**
@@ -603,8 +602,8 @@ public class Rs2Player {
     public static boolean eatAt(int percentage, boolean fastFood) {
         double threshold = getHealthPercentage();
         if (threshold <= percentage) {
-            if (fastFood && fastFoodPresent()) {
-                return useFastFood(); // hypothetical fast food consuming method
+            if (fastFood && !Rs2Inventory.getInventoryFastFood().isEmpty()) {
+                return useFastFood();
             }
             return useFood(); // default method
         }
@@ -620,23 +619,14 @@ public class Rs2Player {
      * @return {@code true} if a fast food item was consumed, {@code false} if none were found.
      */
     public static boolean useFastFood() {
-        List<Rs2ItemModel> foods = Rs2Inventory.getInventoryFood();
+        List<Rs2ItemModel> foods = Rs2Inventory.getInventoryFastFood();
         if (foods.isEmpty()) return false;
 
-        Optional<Rs2ItemModel> food = foods.stream()
-                .filter(rs2Item -> !rs2Item.isNoted())
-                .filter(rs2Item -> Rs2Food.getIds().contains(rs2Item.getId()))
-                .filter(rs2Item -> {
-                    for (Rs2Food f : Rs2Food.values()) {
-                        if (f.getId() == rs2Item.getId() && f.getTickdelay() == 1) return true;
-                    }
-                    return false;
-                })
-                .findFirst();
+		Optional<Rs2ItemModel> fastFood = foods.stream().findFirst();
 
-        return food.filter(rs2ItemModel -> Rs2Inventory.interact(rs2ItemModel, "eat")).isPresent();
-
-    }
+		fastFood.ifPresent(rs2ItemModel -> Rs2Inventory.interact(rs2ItemModel, "eat"));
+		return true;
+	}
 
     /**
      * Finds and consumes the best available food item from the player's inventory.
@@ -716,8 +706,7 @@ public class Rs2Player {
      * @return A stream of Rs2PlayerModel objects representing nearby players.
      */
     public static Stream<Rs2PlayerModel> getPlayers(Predicate<Rs2PlayerModel> predicate, boolean includeLocalPlayer) {
-        List<Rs2PlayerModel> players = Microbot.getClientThread().runOnClientThreadOptional(() ->
-                Microbot.getClient().getTopLevelWorldView().players()
+        List<Rs2PlayerModel> players = Optional.of(Microbot.getClient().getTopLevelWorldView().players()
                         .stream()
                         .filter(Objects::nonNull)
                         .map(Rs2PlayerModel::new)
@@ -1434,8 +1423,7 @@ public class Rs2Player {
      */
     public static boolean isStandingOnGameObject() {
         WorldPoint playerPoint = getWorldLocation();
-        return Rs2GameObject.getGameObject(playerPoint) != null
-                && isStandingOnGroundItem();
+        return Rs2GameObject.getGameObject(o -> Objects.equals(playerPoint, o.getWorldLocation())) != null || isStandingOnGroundItem();
     }
 
     /**
@@ -1941,30 +1929,5 @@ public class Rs2Player {
      */
     public static boolean isInTutorialIsland() {
         return Microbot.getVarbitPlayerValue(281) >= 1000;
-    }
-
-    /**
-     * Checks if there is any fast food available in the player's inventory.
-     *
-     * <p>Fast food is defined as food with a {@code tickDelay} of 1 in {@link Rs2Food}.</p>
-     * <p>Noted items are ignored.</p>
-     *
-     * @return {@code true} if at least one fast food item is found, {@code false} otherwise.
-     */
-    public static boolean fastFoodPresent() {
-        List<Rs2ItemModel> foods = Rs2Inventory.getInventoryFood();
-        if (foods.isEmpty()) return false;
-
-        return foods.stream()
-                .filter(rs2Item -> !rs2Item.isNoted())
-                .filter(rs2Item -> Rs2Food.getIds().contains(rs2Item.getId()))
-                .anyMatch(rs2Item -> {
-                    for (Rs2Food food : Rs2Food.values()) {
-                        if (food.getId() == rs2Item.getId() && food.getTickdelay() == 1) {
-                            return true;
-                        }
-                    }
-                    return false;
-                });
     }
 }
