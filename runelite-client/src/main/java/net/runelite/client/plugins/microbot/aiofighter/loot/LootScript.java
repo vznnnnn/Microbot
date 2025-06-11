@@ -50,6 +50,7 @@ public class LootScript extends Script {
                 lootCoins(config);
                 lootUntradeableItems(config);
                 lootArrows(config);
+                lootHerbs(config);
 
             } catch(Exception ex) {
                 Microbot.log("Looterscript: " + ex.getMessage());
@@ -72,6 +73,27 @@ public class LootScript extends Script {
             );
             if (Rs2GroundItem.lootItemsBasedOnNames(arrowParams)) {
                 Microbot.pauseAllScripts = false;
+            }
+        }
+    }
+
+    private void lootHerbs(AIOFighterConfig config) {
+        if (config.toggleLootHerbs()) {
+            LootingParameters herbParams = new LootingParameters(
+                    config.attackRadius(),
+                    1,
+                    10,
+                    minFreeSlots,
+                    config.toggleDelayedLooting(),
+                    config.toggleOnlyLootMyItems(),
+                    "grimy"
+            );
+            if (Rs2GroundItem.lootItemsBasedOnNames(herbParams)) {
+                Microbot.pauseAllScripts = false;
+
+                if (Rs2Inventory.hasItem("Herb sack")) {
+                    Rs2Inventory.interact("Herb sack", "Fill");
+                }
             }
         }
     }

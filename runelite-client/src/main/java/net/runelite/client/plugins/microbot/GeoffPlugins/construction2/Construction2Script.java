@@ -269,7 +269,7 @@ public class Construction2Script extends Script {
                 sleepUntilOnClientThread(() -> Rs2Widget.hasWidget("Select an option"));
                 Rs2Keyboard.typeString("1");
                 sleepUntilOnClientThread(() -> Rs2Widget.hasWidget("Enter amount:"));
-                Rs2Keyboard.typeString("28");
+                Rs2Keyboard.typeString("20");
                 Rs2Keyboard.enter();
             } else if (hasDialogueOptionToUnnote()) {
                 Rs2Keyboard.keyPress('1');

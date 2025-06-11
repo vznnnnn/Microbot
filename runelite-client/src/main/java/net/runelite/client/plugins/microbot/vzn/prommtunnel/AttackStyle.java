@@ -1,8 +1,8 @@
-package net.runelite.client.plugins.microbot.vzn.procombat;
+package net.runelite.client.plugins.microbot.vzn.prommtunnel;
 
 import net.runelite.api.Skill;
 
-public enum ProCombatAttackStyle {
+public enum AttackStyle {
     RANGED,
     MAGIC;
 

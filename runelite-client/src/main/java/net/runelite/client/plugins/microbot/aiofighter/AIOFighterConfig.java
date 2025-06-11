@@ -134,6 +134,17 @@ public interface AIOFighterConfig extends Config {
     }
 
     @ConfigItem(
+            keyName = "monsterIds",
+            name = "Attackable npc IDs",
+            description = "List of attackable npc IDs",
+            position = 2,
+            section = combatSection
+    )
+    default String attackableNpcIds() {
+        return "";
+    }
+
+    @ConfigItem(
             keyName = "Attack Radius",
             name = "Attack Radius",
             description = "The max radius to attack npcs",
@@ -198,6 +209,17 @@ public interface AIOFighterConfig extends Config {
             section = combatSection
     )
     default boolean attackReachableNpcs() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "highLevelMonsterPriority",
+            name = "High level monster priority",
+            description = "Attack higher level monsters",
+            position = 8,
+            section = combatSection
+    )
+    default boolean highLevelMonsterPriority() {
         return true;
     }
 
@@ -402,6 +424,18 @@ public interface AIOFighterConfig extends Config {
             section = lootSection
     )
     default boolean toggleLootCoins() {
+        return false;
+    }
+
+    // toggle loot untreadables
+    @ConfigItem(
+            keyName = "Loot herbs",
+            name = "Loot herbs",
+            description = "Enable/disable loot herbs",
+            position = 45,
+            section = lootSection
+    )
+    default boolean toggleLootHerbs() {
         return false;
     }
 

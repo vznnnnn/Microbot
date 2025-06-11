@@ -128,7 +128,7 @@ public class NmzScript extends Script {
             final String absorption = "Absorption (4)";
             storePotions(OVERLOAD_POTION, "overload", config.overloadPotionAmount());
             storePotions(ObjectID.ABSORPTION_POTION, "absorption", config.absorptionPotionAmount());
-            handleStore();
+//            handleStore();
             fetchOverloadPotions(OVERLOAD_POTION, overload, config.overloadPotionAmount());
             if (Rs2Inventory.hasItemAmount(overload, config.overloadPotionAmount())) {
                 fetchPotions(ObjectID.ABSORPTION_POTION, absorption, config.absorptionPotionAmount());

@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.microbot.vzn.procombat.stage;
+package net.runelite.client.plugins.microbot.vzn.prommtunnel.stage;
 
 import net.runelite.api.Skill;
 import net.runelite.client.plugins.microbot.Microbot;
@@ -6,8 +6,8 @@ import net.runelite.client.plugins.microbot.util.bank.Rs2Bank;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2ItemModel;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
-import net.runelite.client.plugins.microbot.vzn.procombat.PrepareStageImpl;
-import net.runelite.client.plugins.microbot.vzn.procombat.ProCombatPlugin;
+import net.runelite.client.plugins.microbot.vzn.prommtunnel.PrepareStageImpl;
+import net.runelite.client.plugins.microbot.vzn.prommtunnel.ProMMTunnelPlugin;
 
 import javax.swing.*;
 
@@ -18,8 +18,13 @@ import static net.runelite.client.plugins.microbot.util.Global.sleep;
 
 public class PrepareInventory extends PrepareStageImpl {
 
-    public PrepareInventory(ProCombatPlugin plugin) {
+    public PrepareInventory(ProMMTunnelPlugin plugin) {
         super(plugin);
+    }
+
+    @Override
+    public String getName() {
+        return "Prepare Inventory";
     }
 
     @Override

@@ -1,12 +1,12 @@
-package net.runelite.client.plugins.microbot.vzn.procombat.stage;
+package net.runelite.client.plugins.microbot.vzn.prommtunnel.stage;
 
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.gameobject.Rs2GameObject;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
-import net.runelite.client.plugins.microbot.vzn.procombat.PrepareStageImpl;
-import net.runelite.client.plugins.microbot.vzn.procombat.ProCombatPlugin;
+import net.runelite.client.plugins.microbot.vzn.prommtunnel.PrepareStageImpl;
+import net.runelite.client.plugins.microbot.vzn.prommtunnel.ProMMTunnelPlugin;
 
 import static net.runelite.client.plugins.microbot.util.Global.sleep;
 import static net.runelite.client.plugins.microbot.util.Global.sleepUntil;
@@ -18,8 +18,13 @@ public class TravelGrandTree extends PrepareStageImpl {
     private static final int GRAND_TREE_DOOR_ID = 1968;
     private static final int GRAND_TREE_LADDER_ID = 4458;
 
-    public TravelGrandTree(ProCombatPlugin plugin) {
+    public TravelGrandTree(ProMMTunnelPlugin plugin) {
         super(plugin);
+    }
+
+    @Override
+    public String getName() {
+        return "Travel Grand Tree";
     }
 
     @Override

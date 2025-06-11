@@ -1,39 +1,41 @@
-package net.runelite.client.plugins.microbot.vzn.procombat;
+package net.runelite.client.plugins.microbot.vzn.proconstruction;
 
 import com.google.inject.Provides;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.NPC;
+import net.runelite.api.events.NpcDespawned;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.plugins.microbot.util.events.DeathEvent;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;
 import java.awt.*;
+import java.util.Objects;
 
 @PluginDescriptor(
-        name = PluginDescriptor.vzn + "ProCombat",
-        description = "Automates healing, prayer upkeep, and exiting via teleport when out of supplies",
-        tags = {"combat", "afk", "chins", "chinning", "microbot"},
+        name = PluginDescriptor.vzn + "ProConstruction",
+        description = "Automates construction",
+        tags = {"house", "construction"},
         enabledByDefault = false
 )
 @Slf4j
-public class ProCombatPlugin extends Plugin {
+public class ProConstructionPlugin extends Plugin {
 
-    public static ProCombatPlugin instance;
+    public static ProConstructionPlugin instance;
 
     @Inject @Getter private Client client;
     @Inject @Getter private OverlayManager overlayManager;
-    @Inject @Getter private ProCombatConfig config;
-    @Inject @Getter private ProCombatScript script;
-    @Inject private ProCombatOverlay overlay;
+    @Inject @Getter private ProConstructionConfig config;
+    @Inject @Getter private ProConstructionScript script;
+    @Inject private ProConstructionOverlay overlay;
 
     @Provides
-    ProCombatConfig provideConfig(ConfigManager configManager) {
-        return configManager.getConfig(ProCombatConfig.class);
+    ProConstructionConfig provideConfig(ConfigManager configManager) {
+        return configManager.getConfig(ProConstructionConfig.class);
     }
 
     @Override
@@ -54,8 +56,12 @@ public class ProCombatPlugin extends Plugin {
     }
 
     @Subscribe
-    public void onDeathEvent(DeathEvent event) {
-        script.playerDied = true;
+    public void onNpcDespawned(NpcDespawned event) {
+        NPC npc = event.getNpc();
+
+        if (Objects.requireNonNull(npc.getName()).equalsIgnoreCase("Demon butler")) {
+            script.setButlerDespawned(true);
+        }
     }
 
 }

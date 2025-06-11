@@ -1,10 +1,10 @@
-package net.runelite.client.plugins.microbot.vzn.procombat;
+package net.runelite.client.plugins.microbot.vzn.prommtunnel;
 
 import net.runelite.client.config.*;
 
-@ConfigGroup("ProCombat")
+@ConfigGroup("ProMMTunnel")
 @ConfigInformation("")
-public interface ProCombatConfig extends Config {
+public interface ProMMTunnelConfig extends Config {
 
     @ConfigSection(
             name = "Features",
@@ -14,6 +14,39 @@ public interface ProCombatConfig extends Config {
     String features = "features";
 
     @ConfigItem(
+            keyName = "attackStyle",
+            name = "Attack Style",
+            description = "Which attack style to use",
+            section = features,
+            position = -1
+    )
+    default AttackStyle attackStyle() {
+        return AttackStyle.MAGIC;
+    }
+
+    @ConfigItem(
+            keyName = "spreadBones",
+            name = "Spread Bones",
+            description = "Should stacks of more than 3 bones be picked up and moved to other tiles",
+            section = features,
+            position = 0
+    )
+    default boolean spreadBones() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "groupMobs",
+            name = "Group Mobs",
+            description = "Should the walk trick be used to group mobs on a single tile",
+            section = features,
+            position = 1
+    )
+    default boolean groupMobs() {
+        return true;
+    }
+
+    @ConfigItem(
             keyName = "teleportItem",
             name = "Teleport Item",
             description = "The name of the teleport item",
@@ -21,7 +54,7 @@ public interface ProCombatConfig extends Config {
             position = 2
     )
     default String teleportItem() {
-        return "Teleport to home";
+        return "Varrock teleport";
     }
 
     @ConfigItem(
@@ -32,7 +65,29 @@ public interface ProCombatConfig extends Config {
             position = 3
     )
     default String teleportItemAction() {
-        return "Break";
+        return "Commune";
+    }
+
+    @ConfigItem(
+            keyName = "resetAggressionEnabled",
+            name = "Use Reset Aggression",
+            description = "If reset aggression should be enabled",
+            section = features,
+            position = 4
+    )
+    default boolean resetAggressionEnabled() {
+        return true;
+    }
+
+    @ConfigItem(
+            keyName = "resetAggressionInterval",
+            name = "Reset Aggression Interval",
+            description = "The number of minutes before running to an area to reset the monster aggression",
+            section = features,
+            position = 5
+    )
+    default int resetAggressionInterval() {
+        return 10;
     }
 
     @ConfigSection(
@@ -88,6 +143,24 @@ public interface ProCombatConfig extends Config {
     )
     default int boostedStatsThreshold() {
         return 5;
+    }
+
+    @ConfigSection(
+            name = "Bank",
+            description = "Settings for banking",
+            position = 2
+    )
+    String bankSection = "bank";
+
+    @ConfigItem(
+            keyName = "bankPin",
+            name = "Bank PIN",
+            description = "Your Bank PIN",
+            section = bankSection,
+            position = 0
+    )
+    default String bankPin() {
+        return "1234";
     }
 
 }

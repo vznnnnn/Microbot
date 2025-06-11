@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.microbot.vzn.procombat;
+package net.runelite.client.plugins.microbot.vzn.prommtunnel;
 
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.ui.overlay.OverlayPanel;
@@ -9,13 +9,13 @@ import net.runelite.client.ui.overlay.components.TitleComponent;
 import javax.inject.Inject;
 import java.awt.*;
 
-public class ProCombatOverlay extends OverlayPanel {
+public class ProMMTunnelOverlay extends OverlayPanel {
 
-    private final ProCombatPlugin plugin;
-    private final ProCombatConfig config;
+    private final ProMMTunnelPlugin plugin;
+    private final ProMMTunnelConfig config;
 
     @Inject
-    ProCombatOverlay(ProCombatPlugin plugin, ProCombatConfig config) {
+    ProMMTunnelOverlay(ProMMTunnelPlugin plugin, ProMMTunnelConfig config) {
         super(plugin);
 
         this.plugin = plugin;
@@ -48,9 +48,9 @@ public class ProCombatOverlay extends OverlayPanel {
                     .build());
 
             panelComponent.getChildren().add(LineComponent.builder()
-                    .left("Kills")
+                    .left("XP Gained")
                     .leftColor(Color.WHITE)
-                    .right(plugin.getScript().getKills() + "")
+                    .right(plugin.getScript().getXpGained() + "")
                     .build());
         } catch (Exception ex) {
             Microbot.logStackTrace(this.getClass().getSimpleName(), ex);

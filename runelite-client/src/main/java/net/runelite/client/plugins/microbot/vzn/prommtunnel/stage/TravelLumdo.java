@@ -1,10 +1,10 @@
-package net.runelite.client.plugins.microbot.vzn.procombat.stage;
+package net.runelite.client.plugins.microbot.vzn.prommtunnel.stage;
 
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
-import net.runelite.client.plugins.microbot.vzn.procombat.PrepareStageImpl;
-import net.runelite.client.plugins.microbot.vzn.procombat.ProCombatPlugin;
+import net.runelite.client.plugins.microbot.vzn.prommtunnel.PrepareStageImpl;
+import net.runelite.client.plugins.microbot.vzn.prommtunnel.ProMMTunnelPlugin;
 
 import static net.runelite.client.plugins.microbot.util.Global.sleepUntil;
 
@@ -12,8 +12,13 @@ public class TravelLumdo extends PrepareStageImpl {
 
     private static final WorldPoint LUMDO_TILE = new WorldPoint(2802, 2707, 0);
 
-    public TravelLumdo(ProCombatPlugin plugin) {
+    public TravelLumdo(ProMMTunnelPlugin plugin) {
         super(plugin);
+    }
+
+    @Override
+    public String getName() {
+        return "Travel Lumdo";
     }
 
     @Override

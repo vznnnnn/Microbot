@@ -1,19 +1,24 @@
-package net.runelite.client.plugins.microbot.vzn.procombat.stage;
+package net.runelite.client.plugins.microbot.vzn.prommtunnel.stage;
 
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.util.inventory.Rs2Inventory;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.walker.Rs2Walker;
-import net.runelite.client.plugins.microbot.vzn.procombat.PrepareStageImpl;
-import net.runelite.client.plugins.microbot.vzn.procombat.ProCombatPlugin;
+import net.runelite.client.plugins.microbot.vzn.prommtunnel.PrepareStageImpl;
+import net.runelite.client.plugins.microbot.vzn.prommtunnel.ProMMTunnelPlugin;
 
 import static net.runelite.client.plugins.microbot.util.Global.sleep;
-import static net.runelite.client.plugins.microbot.vzn.procombat.ProCombatScript.PLAYER_ATTACK_TILE;
+import static net.runelite.client.plugins.microbot.vzn.prommtunnel.ProMMTunnelScript.PLAYER_ATTACK_TILE;
 
 public class TraverseTunnel extends PrepareStageImpl {
 
-    public TraverseTunnel(ProCombatPlugin plugin) {
+    public TraverseTunnel(ProMMTunnelPlugin plugin) {
         super(plugin);
+    }
+
+    @Override
+    public String getName() {
+        return "Traverse Tunnel";
     }
 
     @Override

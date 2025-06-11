@@ -54,6 +54,10 @@ public class AttackNpcScript extends Script {
                         .map(x -> x.trim().toLowerCase())
                         .collect(Collectors.toList());
 
+                List<Integer> npcIdsToAttack = Arrays.stream(config.attackableNpcIds().split(","))
+                        .map(x -> Integer.valueOf(x.trim().toLowerCase()))
+                        .collect(Collectors.toList());
+
                 double healthPercentage = (double) Microbot.getClient().getBoostedSkillLevel(Skill.HITPOINTS) * 100
                         / Microbot.getClient().getRealSkillLevel(Skill.HITPOINTS);
                 if (Rs2Inventory.getInventoryFood().isEmpty() && healthPercentage < 10)
@@ -75,7 +79,7 @@ public class AttackNpcScript extends Script {
                                 .thenComparingInt(npc -> Rs2Player.getRs2WorldPoint().distanceToPath(npc.getWorldLocation())))
                         .collect(Collectors.toList());
 
-                final List<Rs2NpcModel> attackableNpcs = new ArrayList<>();
+                List<Rs2NpcModel> attackableNpcs = new ArrayList<>();
 
                 for (var attackableNpc: filteredAttackableNpcs) {
                     if (attackableNpc == null || attackableNpc.getName() == null) continue;
@@ -84,6 +88,20 @@ public class AttackNpcScript extends Script {
                             attackableNpcs.add(attackableNpc);
                         }
                     }
+                }
+
+                for (var attackableNpc: filteredAttackableNpcs) {
+                    if (attackableNpc == null || attackableNpc.getName() == null) continue;
+                    for (var npcToAttack: npcIdsToAttack) {
+                        if (npcToAttack == attackableNpc.getId()) {
+                            attackableNpcs.add(attackableNpc);
+                        }
+                    }
+                }
+
+                if (config.highLevelMonsterPriority()) {
+                    attackableNpcs.sort(Comparator.comparingInt(ActorModel::getCombatLevel));
+                    Collections.reverse(attackableNpcs);
                 }
 
                 if (AIOFighterPlugin.getCooldown() > 0 || Rs2Combat.inCombat()) {

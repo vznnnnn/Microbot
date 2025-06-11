@@ -26,8 +26,6 @@ package net.runelite.client.plugins.microbot.tithefarm.models;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.runelite.api.GameObject;
-import net.runelite.api.GroundObject;
 import net.runelite.api.ObjectID;
 import net.runelite.api.TileObject;
 import net.runelite.client.plugins.microbot.Microbot;
