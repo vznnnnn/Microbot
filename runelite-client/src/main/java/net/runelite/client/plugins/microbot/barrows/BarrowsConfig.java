@@ -66,7 +66,7 @@ public interface BarrowsConfig extends Config {
             description = "Minimum amount of forgotten brews to withdraw from the bank.",
             position = 5
     )
-    @Range(min = 1, max = 5)
+    @Range(min = 0, max = 5)
     default int minForgottenBrew() {
         return 1;
     }
@@ -102,6 +102,16 @@ public interface BarrowsConfig extends Config {
     @Range(min = 50, max = 1000)
     default int minRuneAmount() {
         return 180;
+    }
+
+    @ConfigItem(
+            keyName = "shouldGainRP",
+            name = "Aim for 86+% rewards potential",
+            description = "Should we gain additional RP other than the barrows brothers?",
+            position = 9
+    )
+    default boolean shouldGainRP() {
+        return false;
     }
 
 }

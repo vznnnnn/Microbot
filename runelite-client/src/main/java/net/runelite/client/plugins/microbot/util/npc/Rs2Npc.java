@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import static net.runelite.api.Perspective.LOCAL_TILE_SIZE;
+
 public class Rs2Npc {
     /**
      * Retrieves an NPC by its index, returning an {@link Rs2NpcModel}.
@@ -482,6 +484,11 @@ public class Rs2Npc {
             List<String> baseActions = baseComposition != null ? Arrays.asList(baseComposition.getActions()) : Collections.emptyList();
             List<String> transformedActions = transformedComposition != null ? Arrays.asList(transformedComposition.getActions()) : Collections.emptyList();
 
+            // Exception, hunters guild npc requires 46 hunter in-order to access
+            if (Objects.equals(npc.getWorldLocation(), new WorldPoint(1542, 3041, 0))) {
+                return Rs2Player.getSkillRequirement(Skill.HUNTER, 46, false);
+            }
+
             return baseActions.contains("Bank") || transformedActions.contains("Bank");
         }).findFirst().orElse(null);
     }
@@ -604,6 +611,10 @@ public class Rs2Npc {
                     Microbot.log("Error: Could not get menu action for action '" + action + "' on NPC: " + npc.getName());
                 }
                 return false;
+            }
+
+            if (!Rs2Camera.isTileOnScreen(npc.getLocalLocation())) {
+                Rs2Camera.turnTo(npc);
             }
 
             Microbot.doInvoke(new NewMenuEntry(0, 0, menuAction.getId(), npc.getIndex(), -1, npc.getName(), npc),
@@ -810,7 +821,7 @@ public class Rs2Npc {
             if (Rs2Combat.inCombat()) continue;
             if (npc.isInteracting() && npc.getInteracting() != Microbot.getClient().getLocalPlayer() && !Rs2Player.isInMulti())
                 continue;
-            if (npc.getHealthScale() == 0) return false;
+            if (npc.isDead()) continue;
 
             return interact(npc, "attack");
         }
@@ -1205,5 +1216,46 @@ public class Rs2Npc {
     // Walks to the nearest NPC location with the given name
     public static boolean walkToNearestMonster(String name) {
         return walkToNearestMonster(name, 1, false);
+    }
+
+    /**
+     * Determines whether the specified NPC is within the player's current attack range.
+     * <p>
+     * This method will return {@code false} if the NPC or the player's local location
+     * cannot be determined. The effective attack range is calculated by
+     * {@link Rs2Combat#getAttackRange(boolean, boolean)}, taking into account
+     * manual-cast weapons and/or special attacks as specified.
+     *
+     * @param npc                  the target NPC model; may be {@code null}
+     * @param includeManualCast    if {@code true}, include any manual-cast attack range (e.g., magic spells)
+     * @param includeSpecialAttack if {@code true}, include any special-attack range
+     * @return {@code true} if both locations are known and the tile distance between player
+     *         and NPC (using LOCAL_TILE_SIZE) is less than or equal to the computed attack range;
+     *         {@code false} otherwise
+     */
+    public static boolean isInAttackRange(Rs2NpcModel npc, boolean includeManualCast, boolean includeSpecialAttack) {
+        if (npc == null) return false;
+
+        LocalPoint playerLocal = Microbot.getClient().getLocalPlayer().getLocalLocation();
+        LocalPoint npcLocal = npc.getLocalLocation();
+
+        if (npcLocal == null || playerLocal == null) return false;
+
+        int distanceInTiles = playerLocal.distanceTo(npcLocal) / LOCAL_TILE_SIZE;
+        int attackRange = Rs2Combat.getAttackRange(includeManualCast, includeSpecialAttack);
+
+        return distanceInTiles <= attackRange;
+    }
+
+    /**
+     * Determines whether the specified NPC is within the player's basic attack range,
+     * without considering manual-cast weapons or special attacks.
+     *
+     * @param npc the target NPC model; may be {@code null}
+     * @return {@code true} if the NPC is within the default attack range, {@code false} otherwise
+     * @see #isInAttackRange(Rs2NpcModel, boolean, boolean)
+     */
+    public static boolean isInAttackRange(Rs2NpcModel npc) {
+        return isInAttackRange(npc, false, false);
     }
 }

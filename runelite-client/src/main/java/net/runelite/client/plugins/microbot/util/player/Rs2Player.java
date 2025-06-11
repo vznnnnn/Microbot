@@ -10,7 +10,6 @@ import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.kit.KitType;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
-import net.runelite.client.plugins.grounditems.GroundItemsPlugin;
 import net.runelite.client.plugins.microbot.Microbot;
 import net.runelite.client.plugins.microbot.globval.VarbitValues;
 import net.runelite.client.plugins.microbot.globval.enums.InterfaceTab;
@@ -55,6 +54,7 @@ public class Rs2Player {
     private static int divineRangedTime = -1;
     private static int divineBastionTime = -1;
     private static int divineCombatTime = -1;
+    private static int divineMagicTime = -1;
     public static int antiVenomTime = -1;
     public static int staminaBuffTime = -1;
     public static int antiPoisonTime = -1;
@@ -94,6 +94,10 @@ public class Rs2Player {
         return divineCombatTime > 0;
     }
 
+    public static boolean hasDivineMagicActive() {
+        return divineMagicTime > 0;
+    }
+
     public static boolean hasGoadingActive() {
         return goadingTime > 0;
     }
@@ -110,6 +114,9 @@ public class Rs2Player {
         return Microbot.getClient().getBoostedSkillLevel(Skill.DEFENCE) - threshold > Microbot.getClient().getRealSkillLevel(Skill.DEFENCE);
     }
 
+    public static boolean hasMagicActive(int threshold) {
+        return Microbot.getClient().getBoostedSkillLevel(Skill.MAGIC) - threshold > Microbot.getClient().getRealSkillLevel(Skill.MAGIC);
+    }
 
     public static boolean hasAntiVenomActive() {
         if (Rs2Equipment.isWearing("serpentine helm")) {
@@ -152,6 +159,9 @@ public class Rs2Player {
         }
         if (event.getVarbitId() == Varbits.BUFF_GOADING_POTION) {
             goadingTime = event.getValue();
+        }
+        if (event.getVarbitId() == Varbits.DIVINE_MAGIC) {
+            divineMagicTime = event.getValue();
         }
         if (event.getVarpId() == VarPlayer.POISON) {
             if (event.getValue() >= VENOM_VALUE_CUTOFF) {
@@ -342,6 +352,21 @@ public class Rs2Player {
             }
             return localPlayer.getPoseAnimation() != localPlayer.getIdlePoseAnimation();
         }).orElse(false);
+    }
+
+    /**
+     * Checks if the specified Rs2PlayerModel is currently moving based on its pose animation.
+     * The model is considered moving if its pose animation is different from its idle pose animation.
+     *
+     * @param playerModel The Rs2PlayerModel to check.
+     * @return {@code true} if the model is moving, {@code false} if it is idle.
+     */
+    public static boolean isMoving(Rs2PlayerModel playerModel) {
+        if (playerModel == null) {
+            return false;
+        }
+
+        return Microbot.getClientThread().runOnClientThreadOptional(() -> playerModel.getPoseAnimation() != playerModel.getIdlePoseAnimation()).orElse(false);
     }
 
     /**
@@ -670,7 +695,6 @@ public class Rs2Player {
                 .players()
                 .stream()
                 .filter(Objects::nonNull)
-                .filter(x -> x != Microbot.getClient().getLocalPlayer())
                 .collect(Collectors.toList());
     }
 
@@ -681,12 +705,23 @@ public class Rs2Player {
      * @return A stream of Rs2PlayerModel objects representing nearby players.
      */
     public static Stream<Rs2PlayerModel> getPlayers(Predicate<Rs2PlayerModel> predicate) {
+        return getPlayers(predicate, false);
+    }
+
+    /**
+     * Get a stream of players around you, optionally filtered by a predicate.
+     *
+     * @param predicate A condition to filter players (optional).
+     * @param includeLocalPlayer a flag on whether to include the local player within the stream
+     * @return A stream of Rs2PlayerModel objects representing nearby players.
+     */
+    public static Stream<Rs2PlayerModel> getPlayers(Predicate<Rs2PlayerModel> predicate, boolean includeLocalPlayer) {
         List<Rs2PlayerModel> players = Microbot.getClientThread().runOnClientThreadOptional(() ->
                 Microbot.getClient().getTopLevelWorldView().players()
                         .stream()
                         .filter(Objects::nonNull)
                         .map(Rs2PlayerModel::new)
-                        .filter(x -> x.getPlayer() != Microbot.getClient().getLocalPlayer())
+                        .filter(x -> includeLocalPlayer || x.getPlayer() != Microbot.getClient().getLocalPlayer())
                         .filter(predicate)
                         .collect(Collectors.toList())
         ).orElse(new ArrayList<>());
@@ -978,7 +1013,7 @@ public class Rs2Player {
      * @return The local player wrapped in an {@link Rs2PlayerModel}.
      */
     public static Rs2PlayerModel getLocalPlayer() {
-        return new Rs2PlayerModel(Microbot.getClient().getLocalPlayer());
+        return getPlayers(player -> player.getId() == Microbot.getClient().getLocalPlayer().getId(), true).findFirst().orElse(null);
     }
 
     /**
@@ -1067,11 +1102,10 @@ public class Rs2Player {
      */
     public static WorldPoint getWorldLocation() {
         if (Microbot.getClient().getTopLevelWorldView().getScene().isInstance()) {
-            LocalPoint l = LocalPoint.fromWorld(Microbot.getClient().getTopLevelWorldView(), getLocalPlayer().getWorldLocation());
-            WorldPoint playerInstancedWorldLocation = WorldPoint.fromLocalInstance(Microbot.getClient(), l);
-            return playerInstancedWorldLocation;
+            LocalPoint l = LocalPoint.fromWorld(Microbot.getClient().getTopLevelWorldView(), Microbot.getClient().getLocalPlayer().getWorldLocation());
+            return WorldPoint.fromLocalInstance(Microbot.getClient(), l);
         } else {
-            return getLocalPlayer().getWorldLocation();
+            return Microbot.getClient().getLocalPlayer().getWorldLocation();
         }
     }
 
@@ -1379,6 +1413,18 @@ public class Rs2Player {
      */
     public static boolean hasPrayerPoints() {
         return Microbot.getClient().getBoostedSkillLevel(Skill.PRAYER) > 0;
+    }
+
+    /**
+     * Calculates the player's current prayer level as a percentage of their base prayer level.
+     *
+     * @return a value between 0 and 100 representing the percentage of prayer remaining.
+     */
+    public static int getPrayerPercentage() {
+        int current = Microbot.getClient().getBoostedSkillLevel(Skill.PRAYER);
+        int base = Microbot.getClient().getRealSkillLevel(Skill.PRAYER);
+
+        return (int) ((current / (double) base) * 100);
     }
 
     /**
@@ -1871,15 +1917,19 @@ public class Rs2Player {
      *         or if the local player is null, it returns null.
      */
     public static Actor getInteracting() {
-        if (Microbot.getClient().getLocalPlayer() == null) return null;
+        Optional<Actor> result = Microbot.getClientThread().runOnClientThreadOptional(() -> {
+            if (Microbot.getClient().getLocalPlayer() == null) return null;
 
-        var interactingActor = Microbot.getClient().getLocalPlayer().getInteracting();
+            var interactingActor = Microbot.getClient().getLocalPlayer().getInteracting();
 
-        if (interactingActor instanceof net.runelite.api.NPC) {
-            return new Rs2NpcModel((NPC) interactingActor);
-        }
+            if (interactingActor instanceof net.runelite.api.NPC) {
+                return new Rs2NpcModel((NPC) interactingActor);
+            }
 
-        return interactingActor;
+            return interactingActor;
+        });
+
+        return result.orElse(null);
     }
     /**
      * Checks if the player has finished Tutorial Island.
