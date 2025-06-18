@@ -76,14 +76,22 @@ public class AIOFighterOverlay extends OverlayPanel {
             }
         }
 
-        for (Rs2NpcModel npc : filteredAttackableNpcs.get()) {
-            if (npc != null && npc.getCanvasTilePoly() != null) {
-                try {
-                    graphics.setColor(Color.CYAN);
-                    modelOutlineRenderer.drawOutline(npc, 2, Color.RED, 4);
-                    graphics.draw(npc.getCanvasTilePoly());
-                } catch (Exception ex) {
-                    Microbot.logStackTrace(this.getClass().getSimpleName(), ex);
+        if (config.drawNpcBoxes() || config.drawNpcHighlights()) {
+            for (Rs2NpcModel npc : filteredAttackableNpcs.get()) {
+                if (npc != null && npc.getCanvasTilePoly() != null) {
+                    try {
+                        graphics.setColor(Color.CYAN);
+
+                        if (config.drawNpcBoxes()) {
+                            modelOutlineRenderer.drawOutline(npc, 2, Color.RED, 4);
+                        }
+
+                        if (config.drawNpcBoxes()) {
+                            graphics.draw(npc.getCanvasTilePoly());
+                        }
+                    } catch (Exception ex) {
+                        Microbot.logStackTrace(this.getClass().getSimpleName(), ex);
+                    }
                 }
             }
         }

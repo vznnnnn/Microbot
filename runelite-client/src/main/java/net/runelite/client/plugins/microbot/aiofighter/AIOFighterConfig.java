@@ -112,6 +112,28 @@ public interface AIOFighterConfig extends Config {
     }
 
     @ConfigItem(
+            keyName = "drawNpcBoxes",
+            name = "Draw NPC Boxes",
+            description = "Draw the NPC boxes",
+            position = 1,
+            section = visualSection
+    )
+    default boolean drawNpcBoxes() {
+        return false;
+    }
+
+    @ConfigItem(
+            keyName = "drawNpcHighlights",
+            name = "Draw NPC Highlights",
+            description = "Draw the NPC highlights",
+            position = 2,
+            section = visualSection
+    )
+    default boolean drawNpcHighlights() {
+        return false;
+    }
+
+    @ConfigItem(
             keyName = "Combat",
             name = "Auto attack npc",
             description = "Attacks npc",

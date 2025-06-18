@@ -50,69 +50,48 @@ public class AttackNpcScript extends Script {
                 if (!Microbot.isLoggedIn() || !super.run() || !config.toggleCombat())
                     return;
 
-                if(config.centerLocation().distanceTo(Rs2Player.getWorldLocation()) < config.attackRadius() &&
-                        !config.centerLocation().equals(new WorldPoint(0, 0, 0)) &&  AIOFighterPlugin.getState() != State.BANKING) {
-                    if(ShortestPathPlugin.getPathfinder() != null)
+                if (config.centerLocation().distanceTo(Rs2Player.getWorldLocation()) < config.attackRadius()
+                        && !config.centerLocation().equals(new WorldPoint(0, 0, 0))
+                        && AIOFighterPlugin.getState() != State.BANKING) {
+                    if (ShortestPathPlugin.getPathfinder() != null)
                         Rs2Walker.setTarget(null);
                     AIOFighterPlugin.setState(State.IDLE);
                 }
 
-                attackableArea = new Rs2WorldArea(config.centerLocation().toWorldArea());
-                attackableArea = attackableArea.offset(config.attackRadius());
+                attackableArea = new Rs2WorldArea(config.centerLocation().toWorldArea()).offset(config.attackRadius());
+
                 List<String> npcsToAttack = Arrays.stream(config.attackableNpcs().split(","))
-                        .map(x -> x.trim().toLowerCase())
+                        .map(s -> s.trim().toLowerCase())
                         .collect(Collectors.toList());
 
                 List<Integer> npcIdsToAttack = Arrays.stream(config.attackableNpcIds().split(","))
-                        .map(x -> Integer.valueOf(x.trim()))
+                        .map(s -> Integer.parseInt(s.trim()))
                         .collect(Collectors.toList());
 
-                filteredAttackableNpcs.set(
-                    Rs2Npc.getAttackableNpcs(config.attackReachableNpcs())
-                            .filter(npc -> npc.getWorldLocation().distanceTo(config.centerLocation()) <= config.attackRadius())
-                            .filter(npc -> {
-                                String name = npc.getName();
-                                int id = npc.getId();
+                List<Rs2NpcModel> filtered = Rs2Npc.getAttackableNpcs(config.attackReachableNpcs())
+                        .filter(npc -> npc.getWorldLocation().distanceTo(config.centerLocation()) <= config.attackRadius())
+                        .filter(npc -> {
+                            String name = npc.getName();
+                            int id = npc.getId();
 
-                                if ((name == null || name.isEmpty()) && id == -1) return false;
+                            if ((name == null || name.isEmpty()) && id == -1) return false;
 
-                                boolean nameMatch = !npcsToAttack.isEmpty() && npcsToAttack.stream().anyMatch(name::equalsIgnoreCase);
-                                boolean idMatch = !npcIdsToAttack.isEmpty() && npcIdsToAttack.contains(id);
+                            boolean nameMatch = !npcsToAttack.isEmpty() && npcsToAttack.stream().anyMatch(n -> n.equalsIgnoreCase(name));
+                            boolean idMatch = !npcIdsToAttack.isEmpty() && npcIdsToAttack.contains(id);
 
-                                return nameMatch || idMatch;
-                            })
-                            .sorted(Comparator.comparingInt((Rs2NpcModel npc) -> Objects.equals(npc.getInteracting(), Microbot.getClient().getLocalPlayer()) ? 0 : 1)
-                                    .thenComparingInt(npc -> Rs2Player.getRs2WorldPoint().distanceToPath(npc.getWorldLocation())))
-                            .collect(Collectors.toList())
-                );
+                            return nameMatch || idMatch;
+                        })
+                        .sorted(Comparator
+                                .comparingInt((Rs2NpcModel npc) -> npc.getInteracting() == Microbot.getClient().getLocalPlayer() ? 0 : 1)
+                                .thenComparingInt(npc -> Rs2Player.getRs2WorldPoint().distanceToPath(npc.getWorldLocation())))
+                        .collect(Collectors.toList());
 
-                final List<Rs2NpcModel> attackableNpcs = new ArrayList<>();
+                filteredAttackableNpcs.set(filtered);
 
-                for (var attackableNpc: filteredAttackableNpcs.get()) {
-                    if (attackableNpc == null || attackableNpc.getName() == null) continue;
-                    for (var npcToAttack: npcsToAttack) {
-                        if (npcToAttack.equalsIgnoreCase(attackableNpc.getName())) {
-                            attackableNpcs.add(attackableNpc);
-                        }
-                    }
-                }
-
-                for (var attackableNpc: filteredAttackableNpcs.get()) {
-                    if (attackableNpc == null || attackableNpc.getName() == null) continue;
-                    for (var npcToAttack: npcsToAttack) {
-                        if (npcToAttack.equalsIgnoreCase(attackableNpc.getName())) {
-                            attackableNpcs.add(attackableNpc);
-                        }
-                    }
-                }
-
-                filteredAttackableNpcs.set(attackableNpcs);
-
-                if(config.state().equals(State.BANKING) || config.state().equals(State.WALKING))
+                if (config.state() == State.BANKING || config.state() == State.WALKING)
                     return;
 
-                if (config.toggleCenterTile() && config.centerLocation().getX() == 0
-                        && config.centerLocation().getY() == 0) {
+                if (config.toggleCenterTile() && config.centerLocation().getX() == 0 && config.centerLocation().getY() == 0) {
                     if (!messageShown) {
                         Microbot.showMessage("Please set a center location");
                         messageShown = true;
@@ -121,15 +100,8 @@ public class AttackNpcScript extends Script {
                 }
                 messageShown = false;
 
-                filteredAttackableNpcs.set(Rs2Npc.getAttackableNpcs(config.attackReachableNpcs())
-                        .filter(npc -> npc.getWorldLocation().distanceTo(config.centerLocation()) <= config.attackRadius())
-                        .sorted(Comparator.comparingInt((Rs2NpcModel npc) -> npc.getInteracting() == Microbot.getClient().getLocalPlayer() ? 0 : 1)
-                                .thenComparingInt(npc -> Rs2Player.getRs2WorldPoint().distanceToPath(npc.getWorldLocation())))
-                        .collect(Collectors.toList()));
-
                 if (config.highLevelMonsterPriority()) {
-                    attackableNpcs.sort(Comparator.comparingInt(ActorModel::getCombatLevel));
-                    Collections.reverse(attackableNpcs);
+                    filtered.sort(Comparator.comparingInt(ActorModel::getCombatLevel).reversed());
                 }
 
                 if (AIOFighterPlugin.getCooldown() > 0 || Rs2Combat.inCombat()) {
@@ -138,8 +110,8 @@ public class AttackNpcScript extends Script {
                     return;
                 }
 
-                if (!attackableNpcs.isEmpty()) {
-                    Rs2NpcModel npc = attackableNpcs.stream().findFirst().orElse(null);
+                if (!filtered.isEmpty()) {
+                    Rs2NpcModel npc = filtered.get(0);
 
                     if (!Rs2Camera.isTileOnScreen(npc.getLocalLocation()))
                         Rs2Camera.turnTo(npc);
@@ -147,7 +119,6 @@ public class AttackNpcScript extends Script {
                     Rs2Npc.interact(npc, "attack");
                     Microbot.status = "Attacking " + npc.getName();
                     AIOFighterPlugin.setCooldown(config.playStyle().getRandomTickInterval());
-
                 } else {
                     Microbot.log("No attackable NPC found");
                 }
