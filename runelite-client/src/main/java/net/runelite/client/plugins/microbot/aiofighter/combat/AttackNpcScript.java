@@ -64,7 +64,7 @@ public class AttackNpcScript extends Script {
                         .collect(Collectors.toList());
 
                 List<Integer> npcIdsToAttack = Arrays.stream(config.attackableNpcIds().split(","))
-                        .map(x -> Integer.valueOf(x.trim().toLowerCase()))
+                        .map(x -> Integer.valueOf(x.trim()))
                         .collect(Collectors.toList());
 
                 filteredAttackableNpcs.set(
@@ -72,13 +72,20 @@ public class AttackNpcScript extends Script {
                             .filter(npc -> npc.getWorldLocation().distanceTo(config.centerLocation()) <= config.attackRadius())
                             .filter(npc -> {
                                 String name = npc.getName();
-                                if (name == null || name.isEmpty()) return false;
-                                return !npcsToAttack.isEmpty() && npcsToAttack.stream().anyMatch(name::equalsIgnoreCase);
+                                int id = npc.getId();
+
+                                if ((name == null || name.isEmpty()) && id == -1) return false;
+
+                                boolean nameMatch = !npcsToAttack.isEmpty() && npcsToAttack.stream().anyMatch(name::equalsIgnoreCase);
+                                boolean idMatch = !npcIdsToAttack.isEmpty() && npcIdsToAttack.contains(id);
+
+                                return nameMatch || idMatch;
                             })
                             .sorted(Comparator.comparingInt((Rs2NpcModel npc) -> Objects.equals(npc.getInteracting(), Microbot.getClient().getLocalPlayer()) ? 0 : 1)
                                     .thenComparingInt(npc -> Rs2Player.getRs2WorldPoint().distanceToPath(npc.getWorldLocation())))
                             .collect(Collectors.toList())
                 );
+
                 final List<Rs2NpcModel> attackableNpcs = new ArrayList<>();
 
                 for (var attackableNpc: filteredAttackableNpcs.get()) {

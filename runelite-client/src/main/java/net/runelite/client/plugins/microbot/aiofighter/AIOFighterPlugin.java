@@ -27,6 +27,8 @@ import net.runelite.client.plugins.microbot.aiofighter.safety.SafetyScript;
 import net.runelite.client.plugins.microbot.aiofighter.skill.AttackStyleScript;
 import net.runelite.client.plugins.microbot.inventorysetups.InventorySetup;
 import net.runelite.client.plugins.microbot.util.combat.Rs2Combat;
+import net.runelite.client.plugins.microbot.util.npc.Rs2Npc;
+import net.runelite.client.plugins.microbot.util.npc.Rs2NpcModel;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.microbot.util.prayer.Rs2Prayer;
 import net.runelite.client.ui.JagexColors;
@@ -36,8 +38,7 @@ import net.runelite.client.util.Text;
 
 import javax.inject.Inject;
 import java.awt.*;
-import java.util.Arrays;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -221,20 +222,62 @@ public class AIOFighterPlugin extends Plugin {
     }
 
     private void addNpcToList(String npcName) {
+        Microbot.log("Trying to add attackable monster name: " + npcName);
+
+        List<String> currentNpcNames = new ArrayList<>(List.of(config.attackableNpcs().split(",")));
+        List<String> currentNpcIds = new ArrayList<>(List.of(config.attackableNpcIds().split(",")));
+
+        if (currentNpcNames.stream().noneMatch(name -> name.equalsIgnoreCase(npcName))) {
+            currentNpcNames.add(npcName);
+            Microbot.log("Added attackable monster name: " + npcName);
+        }
+
+        Rs2Npc.getNpcs(npcName).forEach(npc -> {
+            if (!currentNpcIds.contains(String.valueOf(npc.getId()))) {
+                currentNpcIds.add(String.valueOf(npc.getId()));
+                Microbot.log("Added attackable monster ID: " + npc.getId());
+            }
+        });
+
         configManager.setConfiguration(
                 "PlayerAssistant",
                 "monster",
-                config.attackableNpcs() + npcName + ","
+                String.join( ",", currentNpcNames)
         );
 
+        configManager.setConfiguration(
+                "PlayerAssistant",
+                "monsterIds",
+                String.join( ",", currentNpcIds)
+        );
     }
+
     private void removeNpcFromList(String npcName) {
+        Microbot.log("Trying to remove attackable monster name: " + npcName);
+
+        List<String> currentNpcNames = new ArrayList<>(List.of(config.attackableNpcs().split(",")));
+        List<String> currentNpcIds = new ArrayList<>(List.of(config.attackableNpcIds().split(",")));
+
+        if (currentNpcNames.removeIf(str -> str.equalsIgnoreCase(npcName))) {
+            Microbot.log("Removed attackable monster name: " + npcName);
+        }
+
+        Rs2Npc.getNpcs(npcName).forEach(npc -> {
+            if (currentNpcIds.removeIf(str -> str.equalsIgnoreCase(String.valueOf(npc.getId())))) {
+                Microbot.log("Removed attackable monster ID: " + npc.getId());
+            }
+        });
+
         configManager.setConfiguration(
                 "PlayerAssistant",
                 "monster",
-                Arrays.stream(config.attackableNpcs().split(","))
-                        .filter(n -> !n.equalsIgnoreCase(npcName))
-                        .collect(Collectors.joining(","))
+                String.join(",", currentNpcNames)
+        );
+
+        configManager.setConfiguration(
+                "PlayerAssistant",
+                "monsterIds",
+                String.join(",", currentNpcIds)
         );
     }
 
