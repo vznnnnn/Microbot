@@ -574,6 +574,17 @@ public interface AIOFighterConfig extends Config {
     )
     default boolean eatFoodForSpace() { return false; }
 
+    @ConfigItem(
+            keyName = "dropVials",
+            name = "Drop Vials",
+            description = "Drop vials",
+            position = 103,
+            section = lootSection
+    )
+    default boolean dropVials() {
+        return true;
+    }
+
     //set center tile manually
     @ConfigItem(
             keyName = "Center Tile",

@@ -34,8 +34,12 @@ public class LootScript extends Script {
                 if (Rs2Inventory.isFull() || Rs2Inventory.getEmptySlots() <= minFreeSlots || (Rs2Combat.inCombat() && !config.toggleForceLoot()))
                     return;
 
-
-
+                if (config.dropVials()) {
+                    if (Rs2Inventory.hasItem("Vial")) {
+                        Rs2Inventory.dropAll(item -> item.getName().equalsIgnoreCase("Vial"));
+                    }
+                }
+                
                 if (!config.toggleLootItems()) return;
                 if (config.looterStyle().equals(DefaultLooterStyle.MIXED) || config.looterStyle().equals(DefaultLooterStyle.ITEM_LIST)) {
                     lootItemsOnName(config);
@@ -44,6 +48,7 @@ public class LootScript extends Script {
                 if (config.looterStyle().equals(DefaultLooterStyle.GE_PRICE_RANGE) || config.looterStyle().equals(DefaultLooterStyle.MIXED)) {
                     lootItemsByValue(config);
                 }
+
                 lootBones(config);
                 lootAshes(config);
                 lootRunes(config);
