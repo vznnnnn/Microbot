@@ -449,6 +449,17 @@ public interface AIOFighterConfig extends Config {
         return false;
     }
 
+    @ConfigItem(
+            keyName = "Loot coins minimum",
+            name = "Loot coins minimum",
+            description = "The minimum amount of coins to pickup",
+            position = 41,
+            section = lootSection
+    )
+    default int lootCoinsMinimum() {
+        return 500;
+    }
+
     // toggle loot untreadables
     @ConfigItem(
             keyName = "Loot herbs",

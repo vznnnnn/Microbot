@@ -156,7 +156,7 @@ public class LootScript extends Script {
             LootingParameters coinsParams = new LootingParameters(
                     config.attackRadius(),
                     1,
-                    1,
+                    config.lootCoinsMinimum(),
                     minFreeSlots,
                     config.toggleDelayedLooting(),
                     config.toggleOnlyLootMyItems(),
