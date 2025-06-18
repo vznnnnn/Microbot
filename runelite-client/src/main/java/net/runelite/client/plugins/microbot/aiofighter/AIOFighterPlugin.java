@@ -224,8 +224,15 @@ public class AIOFighterPlugin extends Plugin {
     private void addNpcToList(String npcName) {
         Microbot.log("Trying to add attackable monster name: " + npcName);
 
-        List<String> currentNpcNames = new ArrayList<>(List.of(config.attackableNpcs().split(",")));
-        List<String> currentNpcIds = new ArrayList<>(List.of(config.attackableNpcIds().split(",")));
+        List<String> currentNpcNames = Arrays.stream(config.attackableNpcs().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<String> currentNpcIds = Arrays.stream(config.attackableNpcIds().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toCollection(ArrayList::new));
 
         if (currentNpcNames.stream().noneMatch(name -> name.equalsIgnoreCase(npcName))) {
             currentNpcNames.add(npcName);
@@ -242,21 +249,28 @@ public class AIOFighterPlugin extends Plugin {
         configManager.setConfiguration(
                 "PlayerAssistant",
                 "monster",
-                String.join( ",", currentNpcNames)
+                currentNpcNames.isEmpty() ? "" : String.join(",", currentNpcNames)
         );
 
         configManager.setConfiguration(
                 "PlayerAssistant",
                 "monsterIds",
-                String.join( ",", currentNpcIds)
+                currentNpcIds.isEmpty() ? "" : String.join(",", currentNpcIds)
         );
     }
 
     private void removeNpcFromList(String npcName) {
         Microbot.log("Trying to remove attackable monster name: " + npcName);
 
-        List<String> currentNpcNames = new ArrayList<>(List.of(config.attackableNpcs().split(",")));
-        List<String> currentNpcIds = new ArrayList<>(List.of(config.attackableNpcIds().split(",")));
+        List<String> currentNpcNames = Arrays.stream(config.attackableNpcs().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<String> currentNpcIds = Arrays.stream(config.attackableNpcIds().split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toCollection(ArrayList::new));
 
         if (currentNpcNames.removeIf(str -> str.equalsIgnoreCase(npcName))) {
             Microbot.log("Removed attackable monster name: " + npcName);
@@ -271,13 +285,13 @@ public class AIOFighterPlugin extends Plugin {
         configManager.setConfiguration(
                 "PlayerAssistant",
                 "monster",
-                String.join(",", currentNpcNames)
+                currentNpcNames.isEmpty() ? "" : String.join(",", currentNpcNames)
         );
 
         configManager.setConfiguration(
                 "PlayerAssistant",
                 "monsterIds",
-                String.join(",", currentNpcIds)
+                currentNpcIds.isEmpty() ? "" : String.join(",", currentNpcIds)
         );
     }
 
