@@ -134,6 +134,17 @@ public interface AIOFighterConfig extends Config {
     }
 
     @ConfigItem(
+            keyName = "drawInfoBox",
+            name = "Draw Info Box",
+            description = "Draw the Info Box",
+            position = 3,
+            section = visualSection
+    )
+    default boolean drawInfoBox() {
+        return true;
+    }
+
+    @ConfigItem(
             keyName = "Combat",
             name = "Auto attack npc",
             description = "Attacks npc",

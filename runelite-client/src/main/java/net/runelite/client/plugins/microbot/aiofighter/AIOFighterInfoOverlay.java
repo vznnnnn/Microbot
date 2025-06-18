@@ -24,24 +24,24 @@ public class AIOFighterInfoOverlay extends OverlayPanel {
     @Override
     public Dimension render(Graphics2D graphics) {
         try {
-            panelComponent.setPreferredSize(new Dimension(250, 400));
-            panelComponent.getChildren().add(TitleComponent.builder()
-                    .text("\uD83E\uDD86 AIO Fighter \uD83E\uDD86")
-                    .color(Color.ORANGE)
-                    .build());
+            if (config.drawInfoBox()) {
+                panelComponent.setPreferredSize(new Dimension(250, 400));
+                panelComponent.getChildren().add(TitleComponent.builder()
+                        .text("\uD83E\uDD86 AIO Fighter \uD83E\uDD86")
+                        .color(Color.ORANGE)
+                        .build());
 
 
-            panelComponent.getChildren().add(LineComponent.builder()
-                    .left("Play Style: " + config.playStyle() + "(" + config.playStyle().getPrimaryTickInterval() + "," + config.playStyle().getSecondaryTickInterval() + ")")
-                    .right("Attack cooldown: " + AIOFighterPlugin.getCooldown())
-                    .build());
-            panelComponent.getChildren().add(LineComponent.builder().build());
-            panelComponent.getChildren().add(LineComponent.builder()
-                    .left(Microbot.status)
-                    .right("Version:" + AIOFighterPlugin.version)
-                    .build());
-
-
+                panelComponent.getChildren().add(LineComponent.builder()
+                        .left("Play Style: " + config.playStyle() + "(" + config.playStyle().getPrimaryTickInterval() + "," + config.playStyle().getSecondaryTickInterval() + ")")
+                        .right("Attack cooldown: " + AIOFighterPlugin.getCooldown())
+                        .build());
+                panelComponent.getChildren().add(LineComponent.builder().build());
+                panelComponent.getChildren().add(LineComponent.builder()
+                        .left(Microbot.status)
+                        .right("Version:" + AIOFighterPlugin.version)
+                        .build());
+            }
         } catch (Exception ex) {
             Microbot.logStackTrace(this.getClass().getSimpleName(), ex);
         }
